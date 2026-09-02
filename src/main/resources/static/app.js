@@ -1,24 +1,25 @@
 /* Ant Farm renderer.
-   1. fetch the static terrain once (re-fetch periodically: workers dig),
+   1. fetch the terrain, refresh every few seconds (workers are digging!),
    2. subscribe to /api/sim/stream (SSE), polling /api/sim/state as fallback,
-   3. draw every snapshot: terrain, nest, food, birds, ants — laden foragers
-      leave a fading pheromone trail so the stigmergy trick is visible. */
+   3. draw every snapshot: sand, obstacles, the burrow (tunnels, chambers,
+      entrance/exit holes), food piles inside chambers, birds, and ants —
+      underground ants get a halo and move visibly faster. Laden foragers
+      leave fading pheromone trails. */
 "use strict";
 
 const CELL = 6; // px per world cell
-const KIND = { SAND: 0, BRANCH: 1, PEBBLE: 2, CHAMBER: 3 };
+const KIND = { SAND: 0, BRANCH: 1, PEBBLE: 2, HOLE: 3, TUNNEL: 4, CHAMBER: 5 };
 
 const COLORS = {
   worker: "#8a5a2b",
   forager: "#e0702a",
   food: "#3f9b3f",
   bird: "#23262b",
-  nestRim: "rgba(74,52,24,0.9)",
-  nestHole: "rgba(38,26,12,0.95)",
+  sand: "#e6d2a1",
   trail: "224,112,42",
 };
 
-const terrain = { loaded: false, width: 0, height: 0, rows: [] };
+const terrain = { loaded: false, width: 0, height: 0, rows: [], tunnels: 0, chambers: [], holes: 0 };
 let snapshot = null;
 let streamMode = "connecting";
 let running = true;
@@ -50,42 +51,112 @@ async function loadTerrain() {
   }
 }
 
-function kindFill(kind) {
+function baseColor(kind) {
   switch (kind) {
-    case KIND.SAND: return "#e6d2a1";
+    case KIND.SAND:
+    case KIND.HOLE: return COLORS.sand;
     case KIND.BRANCH: return "#6f4a24";
-    case KIND.PEBBLE: return "#a49b8a";
-    case KIND.CHAMBER: return "#c8ad7c";
+    case KIND.PEBBLE: return "#d8d2c2";
+    case KIND.TUNNEL: return "#5d3d20";
+    case KIND.CHAMBER: return "#8a6a3d";
     default: return "#000";
   }
 }
 
 function renderTerrain() {
+  const w = terrain.width, h = terrain.height, c = CELL;
   offCtx.clearRect(0, 0, off.width, off.height);
-  for (let y = 0; y < terrain.height; y++) {
-    for (let x = 0; x < terrain.width; x++) {
+
+  // pass 1: base colours
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
       const kind = terrain.rows[y][x];
-      offCtx.fillStyle = kindFill(kind);
-      offCtx.fillRect(x * CELL, y * CELL, CELL, CELL);
+      offCtx.fillStyle = baseColor(kind);
+      offCtx.fillRect(x * c, y * c, c, c);
+    }
+  }
+
+  // pass 2: detail overlays
+  terrain.chambers = [];
+  terrain.tunnels = 0;
+  terrain.holes = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const kind = terrain.rows[y][x];
+      const px = x * c, py = y * c;
       if (kind === KIND.BRANCH) {
         offCtx.strokeStyle = "#4a2f14";
         offCtx.lineWidth = 1.6;
         offCtx.beginPath();
-        offCtx.moveTo(x * CELL + 1, y * CELL + CELL - 2);
-        offCtx.lineTo(x * CELL + CELL - 2, y * CELL + 1);
+        offCtx.moveTo(px + 1, py + c - 2);
+        offCtx.lineTo(px + c - 2, py + 1);
         offCtx.stroke();
         offCtx.beginPath();
-        offCtx.moveTo(x * CELL + CELL - 4, y * CELL + 3);
-        offCtx.lineTo(x * CELL + CELL - 6, y * CELL + 6);
+        offCtx.moveTo(px + c - 4, py + 3);
+        offCtx.lineTo(px + c - 6, py + 6);
         offCtx.stroke();
       } else if (kind === KIND.PEBBLE) {
-        offCtx.fillStyle = "#8b8371";
+        offCtx.fillStyle = "#9b9381";
         offCtx.beginPath();
-        offCtx.arc(x * CELL + CELL / 2, y * CELL + CELL / 2, CELL * 0.34, 0, Math.PI * 2);
+        offCtx.arc(px + c / 2, py + c / 2, c * 0.34, 0, Math.PI * 2);
         offCtx.fill();
+        offCtx.fillStyle = "rgba(255,255,255,0.25)";
+        offCtx.beginPath();
+        offCtx.arc(px + c * 0.38, py + c * 0.36, c * 0.14, 0, Math.PI * 2);
+        offCtx.fill();
+      } else if (kind === KIND.HOLE) {
+        terrain.holes++;
+        // entrance / exit shaft: dark hole with a sandy rim
+        const g = offCtx.createRadialGradient(px + c / 2, py + c / 2, c * 0.1, px + c / 2, py + c / 2, c * 0.75);
+        g.addColorStop(0, "#241708");
+        g.addColorStop(0.55, "#2f1f0e");
+        g.addColorStop(1, "#4a3418");
+        offCtx.fillStyle = g;
+        offCtx.beginPath();
+        offCtx.arc(px + c / 2, py + c / 2, c * 0.66, 0, Math.PI * 2);
+        offCtx.fill();
+      } else if (kind === KIND.TUNNEL) {
+        terrain.tunnels++;
+        // rounded dark corridor
+        roundRect(offCtx, px + c * 0.12, py + c * 0.12, c * 0.76, c * 0.76, c * 0.3);
+        offCtx.fillStyle = "#4a2e15";
+        offCtx.fill();
+        roundRect(offCtx, px + c * 0.26, py + c * 0.26, c * 0.48, c * 0.48, c * 0.16);
+        offCtx.fillStyle = "rgba(120,86,45,0.35)";
+        offCtx.fill();
+      } else if (kind === KIND.CHAMBER) {
+        terrain.chambers.push({ x, y });
+        // a roomy chamber dug into the sand
+        roundRect(offCtx, px + c * 0.05, py + c * 0.05, c * 0.9, c * 0.9, c * 0.28);
+        offCtx.fillStyle = "#7c5a2e";
+        offCtx.fill();
+        roundRect(offCtx, px + c * 0.16, py + c * 0.16, c * 0.68, c * 0.68, c * 0.2);
+        offCtx.fillStyle = "#9a7640";
+        offCtx.fill();
+        offCtx.strokeStyle = "rgba(58,36,14,0.55)";
+        offCtx.lineWidth = 1;
+        roundRect(offCtx, px + c * 0.12, py + c * 0.12, c * 0.76, c * 0.76, c * 0.24);
+        offCtx.stroke();
       }
     }
   }
+}
+
+function roundRect(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+function cellKind(px, py) {
+  if (py < 0 || py >= terrain.rows.length) return KIND.SAND;
+  const row = terrain.rows[py];
+  if (!row || px < 0 || px >= row.length) return KIND.SAND;
+  return row[px];
 }
 
 // ---------------------------------------------------------------------
@@ -98,7 +169,7 @@ const trails = new Map(); // antId -> [{x, y, t}]
 function recordTrails(nowMs) {
   const seen = new Set();
   for (const ant of snapshot.ants) {
-    if (ant.carrying > 0) {
+    if (ant.carrying > 0 && !isUnderground(ant)) {
       seen.add(ant.id);
       let pts = trails.get(ant.id);
       if (!pts) { pts = []; trails.set(ant.id, pts); }
@@ -127,13 +198,14 @@ function drawTrails(nowMs) {
   }
 }
 
+function isUnderground(ant) {
+  const kind = cellKind(ant.x, ant.y);
+  return kind === KIND.TUNNEL || kind === KIND.CHAMBER;
+}
+
 // ---------------------------------------------------------------------
 // frame
 // ---------------------------------------------------------------------
-
-function roleColor(role) {
-  return role === "FORAGER" ? COLORS.forager : COLORS.worker;
-}
 
 function draw(nowMs) {
   requestAnimationFrame(draw);
@@ -142,28 +214,24 @@ function draw(nowMs) {
 
   ctx.drawImage(off, 0, 0);
 
-  // nest entrances
-  for (const nest of snapshot.nests) {
-    const px = (nest.x + 0.5) * c, py = (nest.y + 0.5) * c;
-    ctx.fillStyle = COLORS.nestRim;
-    ctx.beginPath(); ctx.arc(px, py, c * 0.66, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = COLORS.nestHole;
-    ctx.beginPath(); ctx.arc(px, py, c * 0.42, 0, Math.PI * 2); ctx.fill();
-  }
-
-  // food sources: size reflects remaining amount
-  for (const food of snapshot.foods) {
-    const px = (food.x + 0.5) * c, py = (food.y + 0.5) * c;
-    const r = c * (0.35 + 0.3 * Math.min(1, food.amount / 30));
-    ctx.fillStyle = "rgba(63,155,63,0.25)";
-    ctx.beginPath(); ctx.arc(px, py, r + 2, 0, Math.PI * 2); ctx.fill();
+  // food piles inside chambers reflect the colony food store
+  if (terrain.chambers.length > 0 && snapshot.colonyFood > 0.5) {
+    const perChamber = Math.min(6, snapshot.colonyFood / (terrain.chambers.length * 4));
     ctx.fillStyle = COLORS.food;
-    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.beginPath(); ctx.arc(px - r * 0.3, py - r * 0.3, r * 0.35, 0, Math.PI * 2); ctx.fill();
+    for (const ch of terrain.chambers) {
+      const px = (ch.x + 0.5) * c, py = (ch.y + 0.5) * c;
+      const r = c * Math.min(0.85, 0.4 + perChamber * 0.12);
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.beginPath();
+      ctx.arc(px - r * 0.3, py - r * 0.3, r * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = COLORS.food;
+    }
   }
 
-  // pheromone trails under everything living
   recordTrails(nowMs);
   drawTrails(nowMs);
 
@@ -190,10 +258,11 @@ function draw(nowMs) {
     }
   }
 
-  // ants — laden ones get a green food dot
+  // ants — colour by role; underground ants get a dark halo and no trail
   for (const ant of snapshot.ants) {
     const px = (ant.x + 0.5) * c, py = (ant.y + 0.5) * c;
     const energy = Math.max(0.15, Math.min(1, ant.energy / 100));
+    const under = isUnderground(ant);
     ctx.globalAlpha = 0.5 + 0.5 * energy;
     ctx.fillStyle = roleColor(ant.role);
     ctx.beginPath(); ctx.arc(px, py, Math.max(1.8, c * 0.44), 0, Math.PI * 2); ctx.fill();
@@ -202,10 +271,22 @@ function draw(nowMs) {
       ctx.fillStyle = COLORS.food;
       ctx.beginPath(); ctx.arc(px, py, Math.max(1.2, c * 0.2), 0, Math.PI * 2); ctx.fill();
     }
+    if (under) {
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = "#2c1a08";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(2.6, c * 0.6), 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
   ctx.globalAlpha = 1;
 
   updateHud();
+}
+
+function roleColor(role) {
+  return role === "FORAGER" ? COLORS.forager : COLORS.worker;
 }
 
 function updateHud() {
@@ -219,7 +300,10 @@ function updateHud() {
   set("h-store", snapshot.colonyFood.toFixed(1));
   set("h-brood", snapshot.brood);
   set("h-food", snapshot.foodSources);
-  set("h-birds", snapshot.birdCount);
+  set("h-birds", snapshot.birds);
+  set("h-tunnels", terrain.tunnels);
+  set("h-chambers", terrain.chambers.length);
+  set("h-holes", terrain.holes);
   set("h-stream", `${streamMode} · ${snapshot.ticksPerSecond.toFixed(1)}/s`);
   const btn = document.getElementById("btn-pause");
   btn.textContent = snapshot.running ? "⏸ Pause" : "▶ Resume";
@@ -298,8 +382,8 @@ async function main() {
   bindControls();
   connectSSE();
   setInterval(() => { if (streamMode !== "sse live") pollState(); }, 250);
-  // workers dig chambers — refresh terrain every few seconds to show them
-  setInterval(async () => { if (running) await loadTerrain(); }, 8000);
+  // workers are digging — refresh terrain often to watch the burrow grow
+  setInterval(async () => { if (running) await loadTerrain(); }, 2500);
   requestAnimationFrame(draw);
 }
 

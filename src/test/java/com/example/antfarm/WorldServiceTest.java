@@ -69,7 +69,7 @@ class WorldServiceTest {
 		Position centre = new Position(10, 10);
 		world.register(1, centre);
 		world.register(2, new Position(10, 9)); // north neighbour occupied
-		List<Position> free = world.freeNeighbours(centre);
+		List<Position> free = world.movementNeighbours(centre);
 		assertEquals(3, free.size());
 		assertFalse(free.contains(new Position(10, 9)));
 	}
@@ -85,13 +85,54 @@ class WorldServiceTest {
 	}
 
 	@Test
-	void diggingTurnsSandIntoChamber() {
-		Position spot = new Position(3, 3);
-		assertEquals(TerrainKind.SAND, world.terrainAt(spot));
-		assertTrue(world.dig(spot));
-		assertEquals(TerrainKind.CHAMBER, world.terrainAt(spot));
-		assertTrue(world.isWalkable(spot));
-		assertFalse(world.dig(spot), "cannot dig a chamber twice");
+	void diggingIsAlwaysConnectedToTheBurrow() {
+		// without a burrow there is nothing to dig from — no disconnected islands
+		assertFalse(world.dig(new Position(3, 3)));
+		assertFalse(world.digTunnel(new Position(3, 3)));
+		assertFalse(world.digChamber(new Position(3, 3)));
+
+		// the nest entrance hole is the seed of the whole burrow
+		world.establishNest(new Position(5, 5), new Random(1));
+		assertEquals(TerrainKind.HOLE, world.terrainAt(new Position(5, 5)));
+
+		// sand bordering the entrance/burrow can be dug, and only once
+		Position frontier = world.sandNeighbours(new Position(5, 5)).get(0);
+		assertTrue(world.digTunnel(frontier));
+		assertEquals(TerrainKind.TUNNEL, world.terrainAt(frontier));
+		assertFalse(world.digTunnel(frontier), "cannot dig a tunnel twice");
+
+		// a disconnected cell stays untouched
+		assertFalse(world.dig(new Position(30, 20)));
+		assertEquals(TerrainKind.SAND, world.terrainAt(new Position(30, 20)));
+	}
+
+	@Test
+	void exitsOnlyOpenFromTunnels() {
+		world.establishNest(new Position(5, 5), new Random(2));
+		Position tunnel = findKind(TerrainKind.TUNNEL);
+		assertTrue(tunnel != null, "nest carving should produce a tunnel");
+
+		// open an exit from a sand cell bordering that tunnel
+		Position sand = world.sandNeighbours(tunnel).stream()
+				.filter(p -> !p.equals(new Position(5, 5)))
+				.findFirst().orElse(null);
+		assertTrue(sand != null, "tunnel should have sand neighbours left");
+		assertTrue(world.openHole(sand));
+		assertEquals(TerrainKind.HOLE, world.terrainAt(sand));
+
+		// isolated sand far from any tunnel cannot become a hole
+		assertFalse(world.openHole(new Position(30, 20)));
+	}
+
+	private Position findKind(TerrainKind kind) {
+		for (int x = 0; x < world.width(); x++) {
+			for (int y = 0; y < world.height(); y++) {
+				if (world.terrainAt(new Position(x, y)) == kind) {
+					return new Position(x, y);
+				}
+			}
+		}
+		return null;
 	}
 
 	@Test

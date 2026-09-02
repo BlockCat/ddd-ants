@@ -28,12 +28,12 @@ System_Boundary("AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
 }
 
 Rel(AntFarmApplication.AntFarmApplication.Predators, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Colony, AntFarmApplication.AntFarmApplication.World, "depends on", $techn="", $tags="", $link="")
 Rel(AntFarmApplication.AntFarmApplication.Food, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Predators, "listens to", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Ants, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Colony, AntFarmApplication.AntFarmApplication.World, "depends on", $techn="", $tags="", $link="")
 Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Colony, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Ants, "listens to", $techn="", $tags="", $link="")
 Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Food, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Predators, "listens to", $techn="", $tags="", $link="")
 Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
 Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Colony, "uses", $techn="", $tags="", $link="")
 Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Ants, "uses", $techn="", $tags="", $link="")

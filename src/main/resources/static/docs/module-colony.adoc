@@ -1,11 +1,9 @@
 [%autowidth.stretch, cols="h,a"]
 |===
-|Description
-|Colony context — the social unit that lives in a nest.  Owns the `c.e.a.s.SimulationSnapshot.Nest` aggregate: its entrance and chambers, the `c.e.a.c.model.Queen`, the brood (eggs/larvae/pupae) that grows into new ants, and the colony's stored food. Encodes the policies a real colony follows: the queen lays eggs only while the colony is fed, brood matures into the role the colony currently needs, and deposits of carried food grow the store.  Depends on `world` for positions (nest entrance coordinates). New adult ants are announced via `c.e.a.c.AntHatched` events; free-roaming life of adults is the `ants` module's concern.
 |Base package
 |`com.example.antfarm.colony`
 |Spring components
 |_Services_
 
-* `c.e.a.c.ColonyService` -- Public API of the colony context (in-memory nests for this increment).  Owns colony aggregates and the colony policies: egg laying when fed, brood maturation into castes, and the food store that hungry ants draw from. Cross-module effects never reach past this service — the engine mediates hatching into the ants context.
+* `c.e.a.c.ColonyService`
 |===

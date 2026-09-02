@@ -1,13 +1,11 @@
 [%autowidth.stretch, cols="h,a"]
 |===
-|Description
-|Predators context — the birds that prey on surface ants.  Owns the `c.e.a.p.model.Bird` entity: its patrol route, hunger and hunting behaviour. Birds catch ants found on open terrain and announce the fact; the effect on the ant is handled in the `ants` context (via the simulation engine), so this module never mutates another module's aggregates.  Depends on `world` for movement and for spotting ants on the occupancy grid.
 |Base package
 |`com.example.antfarm.predators`
 |Spring components
 |_Services_
 
-* `c.e.a.p.PredatorService` -- Public API of the predators context.  Owns the birds that patrol the sky over the world. A bird flies anywhere (it is not bound by terrain), drifts around, and every so often strikes at an ant spotted on open sand below. Attacks are returned to the engine, which applies them in the ants context.
+* `c.e.a.p.PredatorService`
 |Bean references
-|* `c.e.a.w.WorldService` (in World) -- The sand terrain of the simulation: a 2D grid of cells, plus a spatial registry of the entities (ants, later food/birds) standing on it.  This is the world module's public API. Entities are referenced by an opaque `long` id so the world never depends on another module's types (ants use `AntId.value()`).  Single world instance, mutated only by the simulation engine's tick thread — deliberately not thread-safe.
+|* `c.e.a.w.WorldService` (in World)
 |===

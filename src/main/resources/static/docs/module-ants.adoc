@@ -1,15 +1,13 @@
 [%autowidth.stretch, cols="h,a"]
 |===
-|Description
-|Ants context — the free-roaming adult ants of a colony.  Owns the `c.e.a.a.model.Ant` aggregate: identity, colony membership, role (worker, forager, …), position, energy and current task. Ant behaviour is the heart of the simulation: sense the terrain (scent gradients, food, home), decide, move — dig, forage, carry food home, rest.  Depends on `world` (positions, movement, scents), `food` (picking up from a source), and `colony` (depositing carried food, consuming stored food, learning the nest entrance).
 |Base package
 |`com.example.antfarm.ants`
 |Spring components
 |_Services_
 
-* `c.e.a.a.AntService` -- Public API of the ants context: owns the roaming adult ants and their behaviour.  Each tick every ant senses and acts. The behaviour set:  <ul> <li><b>eat &amp; rest</b> inside the nest (drawing meals from the store),</li> <li><b>forage</b> — foragers follow the food-scent gradient (the pheromone field maintained by the world module) toward a source, pick food up, and lay scent while carrying it home,</li> <li><b>deposit</b> carried food into the colony store on arrival,</li> <li><b>dig</b> — workers occasionally carve chambers out of the sand near the nest, and</li> <li><b>die</b> when energy runs out (starving, or eaten by a bird via the engine).</li> </ul>  Movement goes through `c.e.a.w.WorldService`; meals and deposits through `c.e.a.c.ColonyService`; food through `c.e.a.f.FoodService`. The ant aggregate decides; the services own their state.
+* `c.e.a.a.AntService`
 |Bean references
-|* `c.e.a.w.WorldService` (in World) -- The sand terrain of the simulation: a 2D grid of cells, plus a spatial registry of the entities (ants, later food/birds) standing on it.  This is the world module's public API. Entities are referenced by an opaque `long` id so the world never depends on another module's types (ants use `AntId.value()`).  Single world instance, mutated only by the simulation engine's tick thread — deliberately not thread-safe.
-* `c.e.a.c.ColonyService` (in Colony) -- Public API of the colony context (in-memory nests for this increment).  Owns colony aggregates and the colony policies: egg laying when fed, brood maturation into castes, and the food store that hungry ants draw from. Cross-module effects never reach past this service — the engine mediates hatching into the ants context.
-* `c.e.a.f.FoodService` (in Food) -- Public API of the food context.  Owns the live food sources and the spawner policy: a new source appears on free sand at a steady rate (up to a cap), every source emits food scent into the world so foragers can smell it, and foragers draw sources down until they are depleted and removed.
+|* `c.e.a.w.WorldService` (in World)
+* `c.e.a.c.ColonyService` (in Colony)
+* `c.e.a.f.FoodService` (in Food)
 |===

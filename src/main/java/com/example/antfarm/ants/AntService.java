@@ -19,6 +19,7 @@ import com.example.antfarm.colony.ColonyService;
 import com.example.antfarm.colony.Role;
 import com.example.antfarm.food.FoodService;
 import com.example.antfarm.world.Position;
+import com.example.antfarm.world.TerrainKind;
 import com.example.antfarm.world.WorldService;
 
 /**
@@ -131,7 +132,23 @@ public class AntService {
 	}
 
 	private void leaveNest(Ant ant, long tick) {
-		Optional<Position> spot = world.freeCellNear(ant.entrance(), 1, random);
+		// workers go underground into the burrow to dig (they wait for a free
+		// burrow cell rather than spilling onto the surface); foragers go up
+		// to the surface to forage
+		Optional<Position> spot;
+		if (ant.role() == Role.WORKER) {
+			spot = world.freeUndergroundCellNear(ant.entrance(), 1, random);
+			if (spot.isEmpty() && world.isFree(ant.entrance())) {
+				// the entrance hole is the seed of the whole burrow — start there
+				spot = Optional.of(ant.entrance());
+			}
+			if (spot.isEmpty()) {
+				log.debug("Worker {} waits inside — no free burrow cell near the entrance", ant.id());
+				return;
+			}
+		} else {
+			spot = world.freeSurfaceCellNear(ant.entrance(), 2, random);
+		}
 		if (spot.isEmpty()) {
 			log.debug("Ant {} cannot leave nest at {} — no free cell nearby (tick {})", ant.id(), ant.entrance(), tick);
 			return;
@@ -144,15 +161,31 @@ public class AntService {
 		double multiplier = ant.role() == Role.FORAGER ? 2.0 : 1.0;
 		long budget = (long) (random.nextLong(policy.minExploreTicks(), policy.maxExploreTicks() + 1) * multiplier);
 		ant.leaveNest(spot.get(), budget);
-		log.debug("Ant {} ({}) left the nest to explore {} (budget {} ticks, energy {})",
-				ant.id(), ant.role(), spot.get(), budget, round(ant.energy()));
+		log.debug("Ant {} ({}) left the nest {} to explore {} (budget {} ticks, energy {})",
+				ant.id(), ant.role(), ant.role() == Role.WORKER ? "into the burrow" : "to the surface",
+				spot.get(), budget, round(ant.energy()));
 	}
 
 	// ------------------------------------------------------------------
 	// Outside: forage (scent!), dig, explore, return home
 	// ------------------------------------------------------------------
 
+	/**
+	 * Advances a roaming ant. Ants inside the burrow (tunnels/chambers)
+	 * take up to two steps per tick — they move faster underground than on
+	 * the open sand.
+	 */
 	private void advanceOutside(Ant ant, long tick) {
+		int maxSteps = world.isUnderground(ant.position()) ? 2 : 1;
+		for (int step = 0; step < maxSteps; step++) {
+			if (ant.isInside() || !ants.containsKey(ant.id())) {
+				return; // arrived home or died mid-step
+			}
+			actOutsideOnce(ant, tick);
+		}
+	}
+
+	private void actOutsideOnce(Ant ant, long tick) {
 		ant.spend(policy.outsideCost());
 		ant.markOutsideTick();
 		if (ant.energy() <= 0) {
@@ -198,9 +231,9 @@ public class AntService {
 			stepTowards(ant, ant.entrance(), tick);
 			return;
 		}
-		// workers carve chambers near the nest
-		if (ant.role() == Role.WORKER && random.nextDouble() < policy.digProbability()
-				&& ant.position().distanceTo(ant.entrance()) <= 3) {
+		// workers in the burrow carve tunnels and chambers — and occasionally
+		// punch a new exit hole to the surface as the network grows
+		if (ant.role() == Role.WORKER && random.nextDouble() < policy.digProbability()) {
 			if (tryDig(ant, tick)) {
 				return;
 			}
@@ -248,22 +281,77 @@ public class AntService {
 	private static final float SCENT_FALLOFF = 0.05f;
 
 	private boolean tryDig(Ant ant, long tick) {
-		List<Position> neighbours = world.freeNeighbours(ant.position());
-		if (neighbours.isEmpty()) {
+		TerrainKind ground = world.terrainAt(ant.position());
+		if (!ground.isUnderground() && !ground.isHole()) {
+			return false; // only ants in the burrow (or at its holes) dig
+		}
+		List<Position> frontier = world.sandNeighbours(ant.position());
+		if (frontier.isEmpty()) {
 			return false;
 		}
-		Position target = neighbours.get(random.nextInt(neighbours.size()));
-		if (!world.dig(target)) {
+		// momentum: dig the sand cell straight ahead of the current heading so
+		// tunnels grow as corridors along the worker's path — never a random blob
+		Position target = pickDigTarget(ant, frontier);
+		double roll = random.nextDouble();
+		boolean dug;
+		String what;
+		if (roll < 0.04) {
+			dug = world.openHole(target); // new burrow exit to the surface
+			what = "a new exit hole";
+		} else {
+			// chambers cluster near the entrance, long tunnels extend the network
+			boolean chamber = roll < 0.18 || (roll > 0.85 && ant.position().distanceTo(ant.entrance()) <= 3);
+			dug = chamber ? world.digChamber(target) : world.digTunnel(target);
+			what = chamber ? "a chamber" : "a tunnel";
+		}
+		if (!dug) {
 			return false;
 		}
 		ant.spend(policy.digCost());
 		events.publishEvent(new ChamberDug(ant.id(), ant.colonyId(), target, tick));
-		log.debug("Worker {} dug a chamber at {}", ant.id(), target);
+		if (what.equals("a new exit hole")) {
+			log.info("Worker {} dug {} at {}", ant.id(), what, target);
+		} else {
+			log.debug("Worker {} dug {} at {}", ant.id(), what, target);
+		}
+		// step into the freshly dug cell half the time, extending the frontier
+		if (!ant.isInside() && random.nextDouble() < 0.5) {
+			move(ant, target, tick);
+		}
 		return true;
 	}
 
+	/** Momentum-driven dig target: prefers the sand cell straight ahead. */
+	private Position pickDigTarget(Ant ant, List<Position> frontier) {
+		double total = 0;
+		double[] weights = new double[frontier.size()];
+		for (int i = 0; i < frontier.size(); i++) {
+			weights[i] = headingWeight(ant, frontier.get(i));
+			total += weights[i];
+		}
+		double pick = random.nextDouble() * total;
+		for (int i = 0; i < weights.length; i++) {
+			pick -= weights[i];
+			if (pick <= 0) {
+				return frontier.get(i);
+			}
+		}
+		return frontier.get(frontier.size() - 1);
+	}
+
 	private void wander(Ant ant, long tick) {
-		List<Position> options = world.freeNeighbours(ant.position());
+		List<Position> options = world.movementNeighbours(ant.position());
+		// workers stay in the burrow: from underground or a hole they only walk
+		// to other burrow cells, never out onto the open sand
+		TerrainKind ground = world.terrainAt(ant.position());
+		if (ant.role() == Role.WORKER && (ground.isUnderground() || ground.isHole())) {
+			options = options.stream()
+					.filter(n -> {
+						TerrainKind k = world.terrainAt(n);
+						return k.isUnderground() || k.isHole();
+					})
+					.toList();
+		}
 		if (options.isEmpty()) {
 			log.debug("Ant {} is boxed in at {}", ant.id(), ant.position());
 			return;
@@ -274,7 +362,7 @@ public class AntService {
 	}
 
 	private void stepTowards(Ant ant, Position goal, long tick) {
-		List<Position> options = world.freeNeighbours(ant.position());
+		List<Position> options = world.movementNeighbours(ant.position());
 		if (options.isEmpty()) {
 			log.debug("Ant {} is blocked at {} (goal {})", ant.id(), ant.position(), goal);
 			return;

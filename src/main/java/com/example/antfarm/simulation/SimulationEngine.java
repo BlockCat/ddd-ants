@@ -97,6 +97,7 @@ public class SimulationEngine {
 			Position entrance = world.randomFreeSand(random)
 					.orElseThrow(() -> new IllegalStateException(
 							"No free sand cell for the nest — world too small for the obstacle count?"));
+			world.establishNest(entrance, random);
 
 			SimulationProperties.Colony colonyCfg = properties.colony();
 			colonyId = colony.createColony(entrance, colonyCfg.initialFood(),

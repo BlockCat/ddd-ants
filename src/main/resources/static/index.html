@@ -79,6 +79,12 @@
     background: linear-gradient(90deg, rgba(224,112,42,0.95), rgba(224,112,42,0.05));
     border-radius: 3px; width: 26px; height: 8px;
   }
+  .sw.tunnel { background: #4a2e15; border-radius: 40%; }
+  .sw.chamber { background: #9a7640; }
+  .sw.stash { background: #9a7640; }
+  .sw.stash::after { content: ""; position: absolute; inset: 0; margin: auto; width: 7px; height: 7px; border-radius: 50%; background: #3f9b3f; }
+  .sw.hole { background: radial-gradient(circle at 50% 50%, #241708 45%, #4a3418 100%); border-radius: 50%; }
+  .sw.under { background: #8a5a2b; box-shadow: inset 0 0 0 2px #2c1a08; }
 
   footer { padding: 10px; color: #6f6755; font-size: .72rem; text-align: center; max-width: 740px; }
 </style>
@@ -117,6 +123,7 @@
       <span>food store <b id="h-store">–</b></span>
       <span>brood <b id="h-brood">–</b></span>
       <span>food sources <b id="h-food">–</b></span>
+      <span>tunnels <b id="h-tunnels">–</b> · chambers <b id="h-chambers">–</b> · holes <b id="h-holes">–</b></span>
       <span>birds <b id="h-birds">–</b></span>
       <span>stream <b id="h-stream">–</b></span>
     </div>
@@ -128,7 +135,8 @@
       <li><span class="sw trail"></span>Pheromone trail — a laden forager's way home; other foragers follow it (and the scent) to food</li>
       <li><span class="sw forager round"></span>Forager — hunts food by scent, carries it home</li>
       <li><span class="sw carrying round"></span>Forager carrying food</li>
-      <li><span class="sw worker round"></span>Worker — digs nest chambers near home</li>
+      <li><span class="sw worker round"></span>Worker — digs tunnels &amp; chambers in the burrow</li>
+      <li><span class="sw under round"></span>Worker underground — digs, moves faster in tunnels</li>
       <li><span class="sw food round"></span>Food source (fruit / seed / carrion) — spawns, gets eaten down, disappears</li>
       <li><span class="sw bird"></span>Bird — predator; swoops on ants on open sand</li>
       <li><span class="sw nest"></span>Nest entrance — queen &amp; brood live below</li>
@@ -138,7 +146,10 @@
       <li><span class="sw sand"></span>Sand — walkable</li>
       <li><span class="sw branch"></span>Branch — obstacle</li>
       <li><span class="sw pebble"></span>Pebble — obstacle</li>
-      <li><span class="sw chamber"></span>Chamber — dug out by workers</li>
+      <li><span class="sw tunnel"></span>Tunnel — burrow corridor (ants are faster there)</li>
+      <li><span class="sw chamber"></span>Chamber — dug-out room</li>
+      <li><span class="sw stash"></span>Food chamber — the colony store, piled up below</li>
+      <li><span class="sw hole"></span>Entrance / exit hole — surface ↔ burrow</li>
     </ul>
   </aside>
 </div>
