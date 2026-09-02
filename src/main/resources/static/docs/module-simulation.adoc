@@ -1,0 +1,44 @@
+[%autowidth.stretch, cols="h,a"]
+|===
+|Description
+|Simulation context — the engine that makes the world live.  Not a domain bounded context of the ant world itself but the application layer around it: owns the simulation clock, tick cadence, the fixed order in which contexts advance each tick, and mediates cross-context effects (a bird attack becomes an ant death; a hatched brood member becomes a new roaming ant). Publishes the significant domain events to the outbox and exposes the world snapshot for rendering.  Depends on every domain module because it orchestrates them.
+|Base package
+|`com.example.antfarm.simulation`
+|Spring components
+|_Controllers_
+
+* `c.e.a.s.SimulationApiController` -- Browser-facing API of the simulation (read-only view model + run controls): the static terrain, the current state, live SSE snapshots, and pause/resume/speed.
+
+_Services_
+
+* `c.e.a.s.SimulationEngine` -- The tick engine. Runs on a single scheduled thread, advancing the contexts in a fixed order each tick so the simulation is deterministic:  <ol> <li>world — scent physics (evaporate &amp; diffuse pheromones)</li> <li>food — spawn sources, emit food scent from every source</li> <li>predators — birds drift and hunt (attacks returned)</li> <li>mediation — engine applies bird attacks in the ants context</li> <li>colony — queen may lay, brood matures (hatch requests)</li> <li>mediation — hatched brood becomes roaming ants</li> <li>ants — every ant acts (forage, dig, carry, deposit, feed, die)</li> </ol>  The tick is transactional: significant domain events published along the way are written to the Modulith event-publication outbox and delivered to async listeners after commit. Live simulation state itself is in-memory.  Controls: `pause()` / `resume()` and a speed multiplier (ticks executed per scheduler wake-up).
+
+_Event listeners_
+
+* `c.e.a.s.SimulationEventLogger` -- Cross-module consumer of the significant domain events, demonstrating the Modulith outbox loop:  <ol> <li>the producing context publishes inside the tick transaction,</li> <li>the event publication registry (EVENT_PUBLICATION table) records a pending delivery in the same transaction,</li> <li>this listener runs asynchronously <em>after commit</em> (@ApplicationModuleListener), and</li> <li>the publication is marked completed on success.</li> </ol>  It only observes — live simulation state is never touched from here, so the async thread cannot race the tick thread.
+
+_Configuration properties_
+
+* `c.e.a.s.SimulationProperties` -- Engine configuration, bound from `simulation.*` in `application.properties`.
+
+_Others_
+
+* `c.e.a.s.SimulationBroadcaster` -- Fan-out of `c.e.a.s.SimulationSnapshot`s to subscribed browser clients via Server-Sent Events. The engine broadcasts after every tick; each emitter is removed when the client disconnects.
+* `c.e.a.s.SimulationConfiguration` -- Module wiring for the simulation context: turns on the tick scheduler and registers the typed simulation properties.
+* `c.e.a.s.SimulationSnapshotBuilder` -- Assembles `c.e.a.s.SimulationSnapshot`s from the module public APIs. Used by the engine (per tick, when clients watch) and by the REST endpoints.
+|Bean references
+|* `c.e.a.w.WorldService` (in World) -- The sand terrain of the simulation: a 2D grid of cells, plus a spatial registry of the entities (ants, later food/birds) standing on it.  This is the world module's public API. Entities are referenced by an opaque `long` id so the world never depends on another module's types (ants use `AntId.value()`).  Single world instance, mutated only by the simulation engine's tick thread — deliberately not thread-safe.
+* `c.e.a.c.ColonyService` (in Colony) -- Public API of the colony context (in-memory nests for this increment).  Owns colony aggregates and the colony policies: egg laying when fed, brood maturation into castes, and the food store that hungry ants draw from. Cross-module effects never reach past this service — the engine mediates hatching into the ants context.
+* `c.e.a.a.AntService` (in Ants) -- Public API of the ants context: owns the roaming adult ants and their behaviour.  Each tick every ant senses and acts. The behaviour set:  <ul> <li><b>eat &amp; rest</b> inside the nest (drawing meals from the store),</li> <li><b>forage</b> — foragers follow the food-scent gradient (the pheromone field maintained by the world module) toward a source, pick food up, and lay scent while carrying it home,</li> <li><b>deposit</b> carried food into the colony store on arrival,</li> <li><b>dig</b> — workers occasionally carve chambers out of the sand near the nest, and</li> <li><b>die</b> when energy runs out (starving, or eaten by a bird via the engine).</li> </ul>  Movement goes through `c.e.a.w.WorldService`; meals and deposits through `c.e.a.c.ColonyService`; food through `c.e.a.f.FoodService`. The ant aggregate decides; the services own their state.
+* `c.e.a.f.FoodService` (in Food) -- Public API of the food context.  Owns the live food sources and the spawner policy: a new source appears on free sand at a steady rate (up to a cap), every source emits food scent into the world so foragers can smell it, and foragers draw sources down until they are depleted and removed.
+* `c.e.a.p.PredatorService` (in Predators) -- Public API of the predators context.  Owns the birds that patrol the sky over the world. A bird flies anywhere (it is not bound by terrain), drifts around, and every so often strikes at an ant spotted on open sand below. Attacks are returned to the engine, which applies them in the ants context.
+|Events listened to
+|* `c.e.a.a.AntDied` (async) 
+* `c.e.a.c.AntHatched` (async) 
+* `c.e.a.p.BirdAttacked` (async) 
+* `c.e.a.a.ChamberDug` (async) 
+* `c.e.a.c.EggLaid` (async) 
+* `c.e.a.c.FoodDeposited` (async) 
+* `c.e.a.f.FoodSourceDepleted` (async) 
+* `c.e.a.f.FoodSourceSpawned` (async) 
+|===

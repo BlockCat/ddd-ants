@@ -1,0 +1,11 @@
+[%autowidth.stretch, cols="h,a"]
+|===
+|Description
+|World context — the sand terrain the simulation happens in.  Owns the 2D grid of cells (sand, branches, other obstacles), the occupancy of entities on it, and the pheromone/scent fields ants read and write. Everything spatial (positions, movement, passability, sensing) flows through this module.  Leaf module: nothing in the domain depends on it; most other modules depend on it for `c.e.a.w.Position` and grid access.
+|Base package
+|`com.example.antfarm.world`
+|Spring components
+|_Services_
+
+* `c.e.a.w.WorldService` -- The sand terrain of the simulation: a 2D grid of cells, plus a spatial registry of the entities (ants, later food/birds) standing on it.  This is the world module's public API. Entities are referenced by an opaque `long` id so the world never depends on another module's types (ants use `AntId.value()`).  Single world instance, mutated only by the simulation engine's tick thread — deliberately not thread-safe.
+|===

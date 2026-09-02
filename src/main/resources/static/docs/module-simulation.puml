@@ -1,0 +1,48 @@
+@startuml
+title <size:24>Simulation</size>
+
+set separator none
+top to bottom direction
+
+<style>
+  root {
+    BackgroundColor: #ffffff
+    FontColor: #444444
+  }
+</style>
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Component>
+
+System_Boundary("AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
+  Container_Boundary("AntFarmApplication.AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
+    Component(AntFarmApplication.AntFarmApplication.World, "World", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarmApplication.AntFarmApplication.Colony, "Colony", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarmApplication.AntFarmApplication.Food, "Food", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarmApplication.AntFarmApplication.Predators, "Predators", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarmApplication.AntFarmApplication.Ants, "Ants", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarmApplication.AntFarmApplication.Simulation, "Simulation", $techn="Module", $descr="", $tags="", $link="")
+  }
+
+}
+
+Rel(AntFarmApplication.AntFarmApplication.Predators, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Colony, AntFarmApplication.AntFarmApplication.World, "depends on", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Food, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Predators, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Ants, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Colony, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Food, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Colony, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Ants, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Food, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Predators, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.Colony, "uses", $techn="", $tags="", $link="")
+Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.Food, "uses", $techn="", $tags="", $link="")
+
+SHOW_LEGEND(true)
+hide stereotypes
+@enduml

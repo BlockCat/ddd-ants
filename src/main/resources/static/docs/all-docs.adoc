@@ -1,0 +1,27 @@
+== AntFarmApplication
+plantuml::components.puml[,,format=svg]
+
+== World
+plantuml::module-world.puml[,,format=svg]
+include::module-world.adoc[]
+
+== Colony
+plantuml::module-colony.puml[,,format=svg]
+include::module-colony.adoc[]
+
+== Food
+plantuml::module-food.puml[,,format=svg]
+include::module-food.adoc[]
+
+== Predators
+plantuml::module-predators.puml[,,format=svg]
+include::module-predators.adoc[]
+
+== Ants
+plantuml::module-ants.puml[,,format=svg]
+include::module-ants.adoc[]
+
+== Simulation
+plantuml::module-simulation.puml[,,format=svg]
+include::module-simulation.adoc[]
+

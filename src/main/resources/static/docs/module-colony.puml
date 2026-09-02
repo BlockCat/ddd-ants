@@ -1,0 +1,30 @@
+@startuml
+title <size:24>Colony</size>
+
+set separator none
+top to bottom direction
+
+<style>
+  root {
+    BackgroundColor: #ffffff
+    FontColor: #444444
+  }
+</style>
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Component>
+
+System_Boundary("AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
+  Container_Boundary("AntFarmApplication.AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
+    Component(AntFarmApplication.AntFarmApplication.World, "World", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarmApplication.AntFarmApplication.Colony, "Colony", $techn="Module", $descr="", $tags="", $link="")
+  }
+
+}
+
+Rel(AntFarmApplication.AntFarmApplication.Colony, AntFarmApplication.AntFarmApplication.World, "depends on", $techn="", $tags="", $link="")
+
+SHOW_LEGEND(true)
+hide stereotypes
+@enduml

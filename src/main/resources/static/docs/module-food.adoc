@@ -1,0 +1,13 @@
+[%autowidth.stretch, cols="h,a"]
+|===
+|Description
+|Food context — food sources in the world.  Owns the `c.e.a.f.model.FoodSource` aggregate (fruit, seed, carrion …): where it lies, how much energy it holds, and how foraging ants draw it down until it is depleted. A spawner policy keeps a steady supply of sources appearing on the terrain.  Depends on `world` for placing sources on free sand cells and for emitting the food scent that guides foragers.
+|Base package
+|`com.example.antfarm.food`
+|Spring components
+|_Services_
+
+* `c.e.a.f.FoodService` -- Public API of the food context.  Owns the live food sources and the spawner policy: a new source appears on free sand at a steady rate (up to a cap), every source emits food scent into the world so foragers can smell it, and foragers draw sources down until they are depleted and removed.
+|Bean references
+|* `c.e.a.w.WorldService` (in World) -- The sand terrain of the simulation: a 2D grid of cells, plus a spatial registry of the entities (ants, later food/birds) standing on it.  This is the world module's public API. Entities are referenced by an opaque `long` id so the world never depends on another module's types (ants use `AntId.value()`).  Single world instance, mutated only by the simulation engine's tick thread — deliberately not thread-safe.
+|===

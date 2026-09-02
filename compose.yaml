@@ -1,0 +1,30 @@
+# Ant farm demo — local PostgreSQL
+#
+# Podman:   podman compose up -d          (or: podman-compose up -d)
+# Docker:   docker compose up -d
+# Stop:     podman compose down           (add -v to also drop the data volume)
+#
+# Credentials below match the defaults the application expects
+# (src/main/resources/application.properties); override via environment if needed.
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: antfarm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: antfarm
+      POSTGRES_USER: antfarm
+      POSTGRES_PASSWORD: antfarm
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U antfarm -d antfarm"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres-data:
