@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 import com.example.antfarm.colony.ColonyId;
@@ -13,7 +11,6 @@ import com.example.antfarm.colony.ColonyPolicy;
 import com.example.antfarm.colony.ColonyService;
 import com.example.antfarm.colony.EggLaid;
 import com.example.antfarm.colony.AntHatched;
-import com.example.antfarm.colony.HatchRequest;
 import com.example.antfarm.world.Position;
 
 class ColonyServiceTest {
@@ -27,10 +24,8 @@ class ColonyServiceTest {
 
 		int eggLaids = 0;
 		int antHatched = 0;
-		int hatchRequests = 0;
 		for (int tick = 1; tick <= 40; tick++) {
-			List<HatchRequest> hatches = colony.advance(tick);
-			hatchRequests += hatches.size();
+			colony.advance(tick);
 		}
 		for (Object event : publisher.published) {
 			if (event instanceof EggLaid) {
@@ -45,7 +40,6 @@ class ColonyServiceTest {
 		// steady-state as hatches free brood slots
 		assertTrue(eggLaids >= 4, "queen should lay while fed and under brood cap, laid " + eggLaids);
 		assertTrue(antHatched >= 1, "first egg (tick 1) must mature at tick 11");
-		assertEquals(hatchRequests, antHatched);
 		assertTrue(colony.foodStore(id).orElseThrow() < 100, "egg laying consumes store food");
 		assertTrue(colony.broodCount(id).orElseThrow() <= 4);
 	}

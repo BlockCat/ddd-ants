@@ -1,4 +1,4 @@
-package com.example.antfarm.simulation;
+package com.example.antfarm.simulation.internal;
 
 import java.io.IOException;
 import java.util.Map;
@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.example.antfarm.simulation.SimulationSnapshot;
 
 /**
  * Fan-out of {@link SimulationSnapshot}s to subscribed browser clients via

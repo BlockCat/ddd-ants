@@ -1,4 +1,4 @@
-package com.example.antfarm.simulation;
+package com.example.antfarm.simulation.internal;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

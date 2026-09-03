@@ -69,11 +69,15 @@ ddd-demo/
     │   └── antfarm
     │       ├── AntFarmApplication.java
     │       ├── world/       # terrain grid, occupancy, scent fields
-    │       ├── colony/      # nest aggregate: queen, brood, food store
-    │       ├── ants/        # free-roaming adults: workers, foragers
-    │       ├── food/        # food sources: spawn / consume / deplete
-    │       ├── predators/   # birds: patrol & hunt
+    │       ├── colony/      # events + service; internal/ = nest aggregates
+    │       ├── ants/        # events + service; internal/ = ant aggregate
+    │       ├── food/        # events + service; internal/ = food-source aggregate
+    │       ├── predators/   # events + service; internal/ = bird aggregate
     │       └── simulation/  # tick engine, orchestration, snapshot API
+    │           ├── SimulationEngine.java        # public application service
+    │           ├── SimulationSnapshot.java      # public view model
+    │           ├── SimulationApiController.java # public web adapter
+    │           └── internal/                    # SSE, outbox listener, props, snapshot builder
     └── test/java/com/example/antfarm
         ├── ArchitectureTests.java  # Module boundary verification
         └── …                        # (DB-bound tests use Testcontainers)
@@ -152,11 +156,17 @@ Modulith application module:
 
 ```
 simulation ──► colony ──► world ◄── food
-   │  └────► ants ──► colony           │
-   │            ▲                      │
-   └────────► food                     │
-   └────────► predators ─────────────►┘
+   │  └────► ants ──► colony ──► predators
+   │            │             ▲
+   └────────► food            │
+   └────────► predators ──────┘
 ```
+
+One-way effects between contexts are published as **events** and handled by
+listeners in the owning context: `colony` publishes `AntHatched` and `ants`
+spawns the adult; `predators` publishes `BirdAttacked` and `ants` kills the
+victim. Request/response operations (feeding, picking food up) remain
+synchronous commands.
 
 Rules enforced automatically by `ArchitectureTests` (`ApplicationModules
 .verify()`): no module may reach another module's internals, dependencies
@@ -182,7 +192,7 @@ lives as loadable skills in `../.pi/skills/` (`ddd-expert`,
 - **M2 — done** foraging: food sources spawn/deplete, food-scent pheromone
   field, foragers follow the gradient and lay trails home, deposits feed
   the store economy
-- **M3 — done** predators: birds patrol and hunt surface ants (engine-
-  mediated kills → `AntDied(EATEN)`)
+- **M3 — done** predators: birds patrol and hunt surface ants (event-driven
+  kills via `BirdAttacked` → `AntDied(EATEN)`)
 - **M4 — done** workers dig chambers out of the sand near the nest
 - **M5 — done** live canvas viewer over SSE, legend, pause/resume/speed

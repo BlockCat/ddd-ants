@@ -10,4 +10,7 @@
 |* `c.e.a.w.WorldService` (in World)
 * `c.e.a.c.ColonyService` (in Colony)
 * `c.e.a.f.FoodService` (in Food)
+|Events listened to
+|* `c.e.a.c.AntHatched` 
+* `c.e.a.p.BirdAttacked` 
 |===

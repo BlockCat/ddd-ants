@@ -1,4 +1,4 @@
-package com.example.antfarm.colony.model;
+package com.example.antfarm.colony.internal;
 
 import java.util.ArrayList;
 import java.util.Iterator;

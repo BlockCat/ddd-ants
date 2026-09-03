@@ -15,15 +15,15 @@ top to bottom direction
 !include <C4/C4_Context>
 !include <C4/C4_Component>
 
-System_Boundary("AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
-  Container_Boundary("AntFarmApplication.AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
-    Component(AntFarmApplication.AntFarmApplication.World, "World", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Food, "Food", $techn="Module", $descr="", $tags="", $link="")
+System_Boundary("AntFarm_boundary", "AntFarm", $tags="") {
+  Container_Boundary("AntFarm.AntFarm_boundary", "AntFarm", $tags="") {
+    Component(AntFarm.AntFarm.World, "World", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Food, "Food", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
 
-Rel(AntFarmApplication.AntFarmApplication.Food, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Food, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

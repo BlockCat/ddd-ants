@@ -1,4 +1,4 @@
-package com.example.antfarm.colony.model;
+package com.example.antfarm.colony.internal;
 
 /**
  * The colony's queen. In this increment she is a fixed member of the nest

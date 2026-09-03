@@ -28,10 +28,10 @@ simulation ──► colony ──► world ◄── food
 | Upstream | Downstream | Relationship | Mechanism | Translation owner |
 |---|---|---|---|---|
 | `world` | everyone | Customer–supplier: world supplies space & sensing; consumers adapt to its grid API | Synchronous public API calls (position, passability, scent read/write, occupancy) | Consumers |
-| `food` | `ants` | Customer–supplier: foragers draw food down at a source | Synchronous call in tick (forager → `food.pickUp(sourceId, amount)`) | `ants` |
-| `colony` | `ants` | Customer–supplier: ants deposit carried food, feed from the store, learn nest entrance | Synchronous public API of `colony` | `ants` |
-| `colony` | `ants` | New adults announced | Domain event `AntHatched` (colony owns it) | `colony` publishes, engine spawns |
-| `predators` | `ants` | Bird attacks become ant deaths | Engine-mediated: `predators` reports attacks → engine calls `ants` → `ants` publishes `AntDied` | `simulation` (mediator) |
+| `food` | `ants` | Customer–supplier: foragers draw food down at a source | Synchronous command in tick (forager → `food.take(sourceId, amount)`) | `ants` |
+| `colony` | `ants` | Customer–supplier: ants deposit carried food and feed from the store | Synchronous command API of `colony` (request/response) | `ants` |
+| `colony` | `ants` | New adults announced | Domain event `AntHatched` (colony owns it) | `colony` publishes, `ants` listens and spawns |
+| `predators` | `ants` | Bird attacks become ant deaths | Domain event `BirdAttacked` (predators owns it) | `predators` publishes, `ants` listens and kills → publishes `AntDied` |
 | all contexts | `simulation` | Significant facts recorded / observable | Domain events → outbox (event publication registry) → async listeners append history | publisher of each event |
 
 ## Notes on the seams
@@ -43,9 +43,11 @@ simulation ──► colony ──► world ◄── food
   evaporation) are still its own.
 - **Cross-context mutation is forbidden**: `predators` never deletes an ant;
   `ants` never deletes a food source it emptied; `colony` never moves an ant.
-  Effects on foreign aggregates go through the engine mediator or the owning
-  module's public API. This is what `ApplicationModules.verify()` enforces
-  mechanically.
+  One-way effects on foreign aggregates arrive as **events** (`AntHatched`,
+  `BirdAttacked`) which the owning module listens to and applies itself.
+  Request/response operations (feeding, picking food up) stay synchronous
+  commands to avoid turning the module graph into a cycle. This is what
+  `ApplicationModules.verify()` enforces mechanically.
 - **Sync vs async**: intra-tick coordination is synchronous module calls
   (ordered, deterministic, same thread). Async outbox events are used for
   facts that are *recorded* (history, metrics) or consumed outside the tick —

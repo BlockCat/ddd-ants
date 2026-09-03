@@ -39,10 +39,12 @@ not announced separately — the deposit is the meal-level fact.)
 1. **Owner publishes, others react — nobody else fires it.** `AntDied`
    (cause `EATEN`) is published by `ants`; `BirdAttacked` is published by
    `predators` as its own record of the strike.
-2. **Cross-module effects are synchronous in the tick** (engine-mediated):
-   the engine takes `BirdAttack`s from the predators module and applies them
-   as `ants.kill(...)`; colony hatch requests become `ants.spawn(...)`. The
-   simulation stays deterministic and no module mutates a foreign aggregate.
+2. **Cross-module effects arrive as events in the tick**: `predators`
+   publishes `BirdAttacked` and the `ants` context listens and kills the
+   victim; `colony` publishes `AntHatched` and the `ants` context listens
+   and spawns the adult. The listeners are synchronous (`@EventListener`),
+   so the effect still lands in the same tick and thread — deterministic and
+   no module mutates a foreign aggregate.
 3. **Payloads carry ids and values, never object references** — serialisable
    to the outbox and replayable.
 4. **Recorded, not reacted-to-synchronously**: `SimulationEventLogger` (in

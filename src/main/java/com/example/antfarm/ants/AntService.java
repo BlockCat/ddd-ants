@@ -11,13 +11,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import com.example.antfarm.ants.model.Ant;
+import com.example.antfarm.ants.internal.Ant;
+import com.example.antfarm.colony.AntHatched;
 import com.example.antfarm.colony.ColonyId;
 import com.example.antfarm.colony.ColonyService;
 import com.example.antfarm.colony.Role;
 import com.example.antfarm.food.FoodService;
+import com.example.antfarm.predators.BirdAttacked;
 import com.example.antfarm.world.Position;
 import com.example.antfarm.world.TerrainKind;
 import com.example.antfarm.world.WorldService;
@@ -37,7 +40,7 @@ import com.example.antfarm.world.WorldService;
  *   <li><b>dig</b> — workers occasionally carve chambers out of the sand
  *       near the nest, and</li>
  *   <li><b>die</b> when energy runs out (starving, or eaten by a bird via
- *       the engine).</li>
+ *       the {@code BirdAttacked} event).</li>
  * </ul>
  *
  * Movement goes through {@link WorldService}; meals and deposits through
@@ -81,6 +84,18 @@ public class AntService {
 		ants.put(ant.id(), ant);
 		log.debug("Ant {} ({}) hatched into colony {} at nest {}", ant.id(), ant.role(), ant.colonyId(), ant.entrance());
 		return ant.id();
+	}
+
+	/** Reacts to a matured brood by bringing the new adult ant into the world. */
+	@EventListener
+	void onAntHatched(AntHatched event) {
+		spawn(new SpawnAnt(event.colonyId(), event.role(), event.entrance()));
+	}
+
+	/** Reacts to a bird strike by applying the death in the owning ants context. */
+	@EventListener
+	void onBirdAttacked(BirdAttacked event) {
+		kill(new AntId(event.antId()), AntDeathCause.EATEN, event.tick());
 	}
 
 	/** Advances all ants one tick. */

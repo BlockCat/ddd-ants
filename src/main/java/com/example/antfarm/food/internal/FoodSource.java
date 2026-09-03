@@ -1,4 +1,4 @@
-package com.example.antfarm.food.model;
+package com.example.antfarm.food.internal;
 
 import com.example.antfarm.food.FoodId;
 import com.example.antfarm.food.FoodType;

@@ -1,6 +1,5 @@
 package com.example.antfarm.predators;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import com.example.antfarm.predators.model.Bird;
+import com.example.antfarm.predators.internal.Bird;
 import com.example.antfarm.world.Position;
 import com.example.antfarm.world.WorldService;
 
@@ -21,8 +20,9 @@ import com.example.antfarm.world.WorldService;
  *
  * Owns the birds that patrol the sky over the world. A bird flies anywhere
  * (it is not bound by terrain), drifts around, and every so often strikes at
- * an ant spotted on open sand below. Attacks are returned to the engine,
- * which applies them in the ants context.
+ * an ant spotted on open sand below. Strikes are announced via the
+ * {@link BirdAttacked} event; the ants context listens to it and applies the
+ * death — no direct cross-module call needed.
  */
 @Service
 @com.example.ddd.DDDApplicationService
@@ -68,20 +68,18 @@ public class PredatorService {
 	}
 
 	/**
-	 * Advances all birds one tick: drift, then possibly hunt. Returns the
-	 * attacks decided this tick for the engine to apply.
+	 * Advances all birds one tick: drift, then possibly hunt. Strikes are
+	 * announced via the {@link BirdAttacked} event.
 	 */
-	public List<BirdAttack> advance(long tick) {
-		List<BirdAttack> attacks = new ArrayList<>();
+	public void advance(long tick) {
 		for (Bird bird : birds.values()) {
 			if (tick % moveEveryTicks == 0) {
 				drift(bird);
 			}
 			if (bird.readyToHunt(tick)) {
-				strike(bird, tick).ifPresent(attacks::add);
+				strike(bird, tick);
 			}
 		}
-		return attacks;
 	}
 
 	private void drift(Bird bird) {
@@ -92,17 +90,16 @@ public class PredatorService {
 		bird.moveTo(new Position(x, y));
 	}
 
-	private java.util.Optional<BirdAttack> strike(Bird bird, long tick) {
+	private void strike(Bird bird, long tick) {
 		List<Long> victims = world.occupantIdsNear(bird.position(), huntRadius);
 		if (victims.isEmpty()) {
 			bird.armHunt(tick, huntIntervalTicks);
-			return java.util.Optional.empty();
+			return;
 		}
 		long victim = victims.get(random.nextInt(victims.size()));
 		bird.armHunt(tick, huntIntervalTicks);
 		log.info("Bird {} swoops on ant {} at {} (tick {})", bird.id(), victim, bird.position(), tick);
 		events.publishEvent(new BirdAttacked(bird.id(), victim, bird.position(), tick));
-		return java.util.Optional.of(new BirdAttack(bird.id(), victim));
 	}
 
 	/** All birds, for snapshots/rendering. */

@@ -1,5 +1,5 @@
 @startuml
-title <size:24>AntFarmApplication</size>
+title <size:24>AntFarm</size>
 
 set separator none
 top to bottom direction
@@ -15,33 +15,35 @@ top to bottom direction
 !include <C4/C4_Context>
 !include <C4/C4_Component>
 
-System_Boundary("AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
-  Container_Boundary("AntFarmApplication.AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
-    Component(AntFarmApplication.AntFarmApplication.World, "World", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Colony, "Colony", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Food, "Food", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Predators, "Predators", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Ants, "Ants", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Simulation, "Simulation", $techn="Module", $descr="", $tags="", $link="")
+System_Boundary("AntFarm_boundary", "AntFarm", $tags="") {
+  Container_Boundary("AntFarm.AntFarm_boundary", "AntFarm", $tags="") {
+    Component(AntFarm.AntFarm.World, "World", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Colony, "Colony", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Food, "Food", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Predators, "Predators", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Ants, "Ants", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Simulation, "Simulation", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
 
-Rel(AntFarmApplication.AntFarmApplication.Predators, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Food, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Colony, AntFarmApplication.AntFarmApplication.World, "depends on", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Colony, "listens to", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Ants, "listens to", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Food, "listens to", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Predators, "listens to", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Colony, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Ants, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Food, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Simulation, AntFarmApplication.AntFarmApplication.Predators, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.Colony, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.Food, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Predators, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Food, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Colony, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Food, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Ants, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Predators, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Colony, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Ants, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Food, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Simulation, AntFarm.AntFarm.Predators, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Colony, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Predators, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Colony, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Food, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Colony, AntFarm.AntFarm.World, "depends on", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

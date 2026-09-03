@@ -1,4 +1,4 @@
-package com.example.antfarm.simulation;
+package com.example.antfarm.simulation.internal;
 
 import java.util.List;
 
@@ -10,6 +10,7 @@ import com.example.antfarm.colony.ColonyService;
 import com.example.antfarm.colony.Role;
 import com.example.antfarm.food.FoodService;
 import com.example.antfarm.predators.PredatorService;
+import com.example.antfarm.simulation.SimulationSnapshot;
 import com.example.antfarm.world.WorldService;
 
 /**

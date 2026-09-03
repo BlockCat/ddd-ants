@@ -1,10 +1,11 @@
-package com.example.antfarm;
+package com.example.antfarm.simulation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import com.example.antfarm.RecordingPublisher;
 import com.example.antfarm.ants.AntDied;
 import com.example.antfarm.ants.AntService;
 import com.example.antfarm.colony.AntHatched;
@@ -15,10 +16,9 @@ import com.example.antfarm.food.FoodService;
 import com.example.antfarm.food.FoodSourceSpawned;
 import com.example.antfarm.predators.BirdAttacked;
 import com.example.antfarm.predators.PredatorService;
-import com.example.antfarm.simulation.SimulationBroadcaster;
-import com.example.antfarm.simulation.SimulationEngine;
-import com.example.antfarm.simulation.SimulationProperties;
-import com.example.antfarm.simulation.SimulationSnapshotBuilder;
+import com.example.antfarm.simulation.internal.SimulationBroadcaster;
+import com.example.antfarm.simulation.internal.SimulationProperties;
+import com.example.antfarm.simulation.internal.SimulationSnapshotBuilder;
 import com.example.antfarm.world.WorldService;
 
 /**

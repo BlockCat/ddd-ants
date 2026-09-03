@@ -15,21 +15,25 @@ top to bottom direction
 !include <C4/C4_Context>
 !include <C4/C4_Component>
 
-System_Boundary("AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
-  Container_Boundary("AntFarmApplication.AntFarmApplication_boundary", "AntFarmApplication", $tags="") {
-    Component(AntFarmApplication.AntFarmApplication.World, "World", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Colony, "Colony", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Food, "Food", $techn="Module", $descr="", $tags="", $link="")
-    Component(AntFarmApplication.AntFarmApplication.Ants, "Ants", $techn="Module", $descr="", $tags="", $link="")
+System_Boundary("AntFarm_boundary", "AntFarm", $tags="") {
+  Container_Boundary("AntFarm.AntFarm_boundary", "AntFarm", $tags="") {
+    Component(AntFarm.AntFarm.World, "World", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Colony, "Colony", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Food, "Food", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Predators, "Predators", $techn="Module", $descr="", $tags="", $link="")
+    Component(AntFarm.AntFarm.Ants, "Ants", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
 
-Rel(AntFarmApplication.AntFarmApplication.Food, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Colony, AntFarmApplication.AntFarmApplication.World, "depends on", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.World, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.Colony, "uses", $techn="", $tags="", $link="")
-Rel(AntFarmApplication.AntFarmApplication.Ants, AntFarmApplication.AntFarmApplication.Food, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Predators, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Food, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Colony, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Predators, "listens to", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.World, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Colony, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Ants, AntFarm.AntFarm.Food, "uses", $techn="", $tags="", $link="")
+Rel(AntFarm.AntFarm.Colony, AntFarm.AntFarm.World, "depends on", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

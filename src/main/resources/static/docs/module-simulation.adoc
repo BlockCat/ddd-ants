@@ -10,20 +10,6 @@
 _Services_
 
 * `c.e.a.s.SimulationEngine`
-
-_Event listeners_
-
-* `c.e.a.s.SimulationEventLogger`
-
-_Configuration properties_
-
-* `c.e.a.s.SimulationProperties`
-
-_Others_
-
-* `c.e.a.s.SimulationBroadcaster`
-* `c.e.a.s.SimulationConfiguration`
-* `c.e.a.s.SimulationSnapshotBuilder`
 |Bean references
 |* `c.e.a.w.WorldService` (in World)
 * `c.e.a.c.ColonyService` (in Colony)

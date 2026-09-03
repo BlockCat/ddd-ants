@@ -7,7 +7,8 @@
  * appearing on the terrain.
  *
  * Depends on {@code world} for placing sources on free sand cells and for
- * emitting the food scent that guides foragers.
+ * emitting the food scent that guides foragers. The aggregate lives in
+ * {@code food.internal}.
  */
 @org.springframework.modulith.ApplicationModule(allowedDependencies = "world")
 @com.example.ddd.DDDBoundedContext(name = "food", description = "Food sources that spawn, emit scent, are eaten down and deplete")

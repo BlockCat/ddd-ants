@@ -1,4 +1,4 @@
-package com.example.antfarm.colony.model;
+package com.example.antfarm.colony.internal;
 
 /**
  * One egg in the brood. Matures into an adult after {@code eggTicks}

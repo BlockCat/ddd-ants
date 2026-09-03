@@ -1,4 +1,4 @@
-package com.example.antfarm.simulation;
+package com.example.antfarm.simulation.internal;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

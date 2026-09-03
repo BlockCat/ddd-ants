@@ -9,8 +9,9 @@
  * store.
  *
  * Depends on {@code world} for positions (nest entrance coordinates).
- * New adult ants are announced via {@code AntHatched} events; free-roaming
- * life of adults is the {@code ants} module's concern.
+ * The aggregates live in {@code colony.internal}; new adult ants are
+ * announced via {@code AntHatched} events, which the {@code ants} context
+ * listens to and turns into roaming adults.
  */
 @org.springframework.modulith.ApplicationModule(allowedDependencies = "world")
 @com.example.ddd.DDDBoundedContext(name = "colony", description = "The nest aggregate: queen, brood, stored food and the egg/hatch policies")

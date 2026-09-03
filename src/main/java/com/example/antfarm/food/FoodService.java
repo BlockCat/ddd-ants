@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import com.example.antfarm.food.model.FoodSource;
+import com.example.antfarm.food.internal.FoodSource;
 import com.example.antfarm.world.Position;
 import com.example.antfarm.world.WorldService;
 

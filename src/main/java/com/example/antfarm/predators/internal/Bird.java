@@ -1,4 +1,4 @@
-package com.example.antfarm.predators.model;
+package com.example.antfarm.predators.internal;
 
 import com.example.antfarm.predators.BirdId;
 import com.example.antfarm.world.Position;

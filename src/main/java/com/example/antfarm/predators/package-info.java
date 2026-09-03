@@ -1,11 +1,11 @@
 /**
  * Predators context — the birds that prey on surface ants.
  *
- * Owns the {@code Bird} entity: its patrol route, hunger and hunting
- * behaviour. Birds catch ants found on open terrain and announce the fact;
- * the effect on the ant is handled in the {@code ants} context (via the
- * simulation engine), so this module never mutates another module's
- * aggregates.
+ * Owns the {@code Bird} entity (in {@code predators.internal}): its patrol
+ * route, hunger and hunting behaviour. Birds catch ants found on open
+ * terrain and announce the fact via {@code BirdAttacked}; the {@code ants}
+ * context listens to it and applies the death, so this module never mutates
+ * another module's aggregates.
  *
  * Depends on {@code world} for movement and for spotting ants on the
  * occupancy grid.

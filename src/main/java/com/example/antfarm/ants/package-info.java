@@ -8,8 +8,11 @@
  *
  * Depends on {@code world} (positions, movement, scents), {@code food}
  * (picking up from a source), and {@code colony} (depositing carried food,
- * consuming stored food, learning the nest entrance).
+ * consuming stored food, learning the nest entrance). Cross-module effects
+ * aimed at ants arrive as events: {@code AntHatched} from {@code colony}
+ * spawns a new adult, {@code BirdAttacked} from {@code predators} applies a
+ * death — no other module reaches into this one.
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = { "world", "food", "colony" })
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "world", "food", "colony", "predators" })
 @com.example.ddd.DDDBoundedContext(name = "ants", description = "Free-roaming adults: forage by scent, carry food home, dig chambers, starve")
 package com.example.antfarm.ants;

@@ -1,26 +1,23 @@
 package com.example.antfarm.simulation;
 
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.antfarm.ants.AntDeathCause;
-import com.example.antfarm.ants.AntId;
 import com.example.antfarm.ants.AntPolicy;
 import com.example.antfarm.ants.AntService;
 import com.example.antfarm.ants.SpawnAnt;
 import com.example.antfarm.colony.ColonyId;
 import com.example.antfarm.colony.ColonyPolicy;
 import com.example.antfarm.colony.ColonyService;
-import com.example.antfarm.colony.HatchRequest;
 import com.example.antfarm.colony.Role;
 import com.example.antfarm.food.FoodService;
-import com.example.antfarm.predators.BirdAttack;
 import com.example.antfarm.predators.PredatorService;
+import com.example.antfarm.simulation.internal.SimulationBroadcaster;
+import com.example.antfarm.simulation.internal.SimulationProperties;
+import com.example.antfarm.simulation.internal.SimulationSnapshotBuilder;
 import com.example.antfarm.world.Position;
 import com.example.antfarm.world.WorldService;
 
@@ -33,10 +30,10 @@ import jakarta.annotation.PostConstruct;
  * <ol>
  *   <li>world — scent physics (evaporate &amp; diffuse pheromones)</li>
  *   <li>food — spawn sources, emit food scent from every source</li>
- *   <li>predators — birds drift and hunt (attacks returned)</li>
- *   <li>mediation — engine applies bird attacks in the ants context</li>
- *   <li>colony — queen may lay, brood matures (hatch requests)</li>
- *   <li>mediation — hatched brood becomes roaming ants</li>
+ *   <li>predators — birds drift and hunt; a strike publishes
+ *       {@code BirdAttacked} and the ants context kills the victim</li>
+ *   <li>colony — queen may lay, brood matures; a hatch publishes
+ *       {@code AntHatched} and the ants context spawns the adult</li>
  *   <li>ants — every ant acts (forage, dig, carry, deposit, feed, die)</li>
  * </ol>
  *
@@ -204,19 +201,13 @@ public class SimulationEngine {
 		// 2. food: spawn + emit scent
 		food.advance(current);
 
-		// 3. predators hunt (attacks), 4. engine applies them in the ants context
-		List<BirdAttack> attacks = predators.advance(current);
-		for (BirdAttack attack : attacks) {
-			ants.kill(new AntId(attack.antId()), AntDeathCause.EATEN, current);
-		}
+		// 3. predators hunt; strikes are applied by the ants context via events
+		predators.advance(current);
 
-		// 5. colony life, 6. hatched brood becomes roaming ants
-		List<HatchRequest> hatches = colony.advance(current);
-		for (HatchRequest hatch : hatches) {
-			ants.spawn(new SpawnAnt(hatch.colonyId(), hatch.role(), hatch.entrance()));
-		}
+		// 4. colony life; matured brood is spawned by the ants context via events
+		colony.advance(current);
 
-		// 7. all ants act
+		// 5. all ants act
 		ants.advance(current);
 
 		if (broadcaster.hasSubscribers()) {

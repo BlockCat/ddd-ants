@@ -1,4 +1,4 @@
-== AntFarmApplication
+== AntFarm
 plantuml::components.puml[,,format=svg]
 
 == World

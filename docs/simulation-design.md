@@ -34,17 +34,17 @@ Per tick `t`:
 1. `world.advance()` — evaporate/diffuse scent fields.
 2. `food.advance()` — maybe spawn a source (if below cap); emit food scent
    from live sources; expire none (depletion only by eating).
-3. `predators.advance()` — move each bird; choose a hunt; return attacks
-   `(birdId, antId, position)`.
-4. **Mediation 1** — engine calls `ants.kill(attack)` for each: ant dies,
-   `ants` emits `AntDied(cause=EATEN)`.
-5. `ants.advance()` — each live ant senses and acts (dig / forage / carry /
+3. `predators.advance()` — move each bird; choose a hunt; a strike publishes
+   `BirdAttacked`.
+4. **Ants listen** — the `ants` context reacts to `BirdAttacked` and kills
+   the victim, emitting `AntDied(cause=EATEN)`.
+5. `colony.advance()` — queen lays eggs if store above threshold; brood
+   matures and publishes `AntHatched`.
+6. **Ants listen** — the `ants` context reacts to `AntHatched` and spawns a
+   new adult at the nest entrance.
+7. `ants.advance()` — each live ant senses and acts (dig / forage / carry /
    return / rest / feed), consuming energy; ants at 0 energy in nest feed
    from store; if store empty → `AntStarved`.
-6. `colony.advance()` — queen lays eggs if store above threshold; brood
-   matures; returns hatch list `(role, entrance)`.
-7. **Mediation 2** — engine calls `ants.spawn(hatch)` for each → new adult
-   ant placed at nest entrance.
 8. `simulation` publishes the tick's significant events inside one
    `@Transactional`, updates tick counter; SSE broadcaster pushes snapshot.
 

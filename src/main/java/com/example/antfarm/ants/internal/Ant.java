@@ -1,4 +1,4 @@
-package com.example.antfarm.ants.model;
+package com.example.antfarm.ants.internal;
 
 import com.example.antfarm.ants.AntId;
 import com.example.antfarm.colony.ColonyId;

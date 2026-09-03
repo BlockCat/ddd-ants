@@ -1,8 +1,6 @@
 package com.example.antfarm.colony;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -12,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import com.example.antfarm.colony.model.Colony;
+import com.example.antfarm.colony.internal.Colony;
 import com.example.antfarm.world.Position;
 
 /**
@@ -20,8 +18,9 @@ import com.example.antfarm.world.Position;
  *
  * Owns colony aggregates and the colony policies: egg laying when fed,
  * brood maturation into castes, and the food store that hungry ants draw
- * from. Cross-module effects never reach past this service — the engine
- * mediates hatching into the ants context.
+ * from. New adults are announced via the {@link AntHatched} event; the ants
+ * context listens to it and creates the roaming ant — no direct
+ * cross-module call needed.
  */
 @Service
 @com.example.ddd.DDDApplicationService
@@ -86,11 +85,10 @@ public class ColonyService {
 	}
 
 	/**
-	 * Advances all colonies one tick. Returns hatch requests for matured
-	 * brood so the engine can create the roaming ants.
+	 * Advances all colonies one tick. Matured brood is announced via the
+	 * {@link AntHatched} event; the ants context reacts by spawning the adult.
 	 */
-	public List<HatchRequest> advance(long tick) {
-		List<HatchRequest> hatches = new ArrayList<>();
+	public void advance(long tick) {
 		for (Colony colony : colonies.values()) {
 			Colony.ColonyTickResult result = colony.advance(tick);
 			if (result.eggLaid()) {
@@ -105,10 +103,8 @@ public class ColonyService {
 				AntHatched event = new AntHatched(colony.id(), role, colony.entrance(), tick);
 				events.publishEvent(event);
 				log.debug("Published {}", event);
-				hatches.add(new HatchRequest(colony.id(), role, colony.entrance()));
 			}
 		}
-		return hatches;
 	}
 
 	private Optional<Colony> colony(ColonyId id) {
