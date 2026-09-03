@@ -1,55 +1,80 @@
 # Simulation Design
 
-How the whole thing runs: engine, tick pipeline, persistence, rendering.
+How the whole thing runs: engine, tick pipeline, event delivery, persistence,
+rendering.
 
 ## Runtime architecture
 
 ```
 Browser (HTML5 canvas, static JS)
-   ▲  SSE: /api/simulation/stream   (snapshots, ~8-10 Hz)
-   │  REST: /api/simulation  (full state on demand), /api/simulation/history
+   ▲  SSE: /api/sim/stream   (snapshots, ~10 Hz)
+   │  REST: /api/sim/state, /api/sim/terrain, /api/sim/status
 ┌──┴─────────────────────────────────────────────────────────────┐
 │ Spring Boot app (single JVM)                                    │
 │                                                                 │
-│  simulation module (engine)                                     │
+│  simulation module (application layer)                          │
 │    TickScheduler (@Scheduled single thread, e.g. 10 Hz)         │
-│    SimulationService.advance(): fixed pipeline per tick         │
+│    SimulationEngine.runTick(): fixed pipeline per tick          │
 │    publishes events in one @Transactional block → outbox        │
 │                                                                 │
 │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐        │
 │  │ world  │ │ colony │ │  ants  │ │  food  │ │predators│       │
-│  │(state) │ │(state) │ │(state) │ │(state) │ │ (state) │        │
+│  │(World  │ │(state) │ │(state) │ │(state) │ │ (state) │        │
+│  │ iface) │ │        │ │        │ │        │ │         │        │
 │  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘        │
-│  in-memory aggregates; module public APIs only                  │
+│  in-memory aggregates; domain contexts talk only via events     │
 │                                                                 │
-│  outbox (EVENT_PUBLICATION, Postgres) → async listeners         │
-│   → EventLog/history read models (JPA repositories)             │
+│  outbox (EVENT_PUBLICATION, Postgres) → @ApplicationModuleListener│
+│   → event log / read models (async, after commit)               │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Communication model
+
+- **Domain contexts (`colony`, `ants`, `food`, `predators`) never call each
+  other.** Requests, responses and facts are all events
+  (`FoodConsumptionRequested → FoodGranted`, `FoodDelivered →
+  FoodDeposited`, `FoodPickupRequested → FoodPicked`, `AntHatched`,
+  `BirdAttacked` …).
+- **State-changing reactions are synchronous** (`@EventListener`, same
+  thread) so an effect lands in the same tick and the run stays
+  deterministic.
+- **Every event is also consumed asynchronously** by `@ApplicationModuleListener`
+  consumers in the simulation module. Spring Modulith registers each
+  publication in the `EVENT_PUBLICATION` outbox inside the tick transaction
+  and delivers it after commit — the event trace is durable and replayable.
+- **The world is the only synchronous dependency.** It is a spatial
+  substrate accessed only through its `World` interface (movement,
+  occupancy, scent, digging). It publishes no business events.
+- **The simulation module is the application layer**: it drives the tick,
+  reads module public APIs for snapshots, and translates foreign facts into
+  owning-context commands (a `BirdAttacked` becomes `ants.kill(...)`, so
+  ants never depends on predators).
 
 ## Tick pipeline (fixed order, one thread — deterministic)
 
 Per tick `t`:
 
-1. `world.advance()` — evaporate/diffuse scent fields.
-2. `food.advance()` — maybe spawn a source (if below cap); emit food scent
-   from live sources; expire none (depletion only by eating).
-3. `predators.advance()` — move each bird; choose a hunt; a strike publishes
-   `BirdAttacked`.
-4. **Ants listen** — the `ants` context reacts to `BirdAttacked` and kills
-   the victim, emitting `AntDied(cause=EATEN)`.
-5. `colony.advance()` — queen lays eggs if store above threshold; brood
-   matures and publishes `AntHatched`.
-6. **Ants listen** — the `ants` context reacts to `AntHatched` and spawns a
-   new adult at the nest entrance.
-7. `ants.advance()` — each live ant senses and acts (dig / forage / carry /
-   return / rest / feed), consuming energy; ants at 0 energy in nest feed
-   from store; if store empty → `AntStarved`.
-8. `simulation` publishes the tick's significant events inside one
-   `@Transactional`, updates tick counter; SSE broadcaster pushes snapshot.
+1. `world.advanceScent()` — evaporate/diffuse pheromones.
+2. `food.advance()` — maybe spawn a source (if below cap); emit food scent.
+   Spawning publishes `FoodSourceSpawned`, which the ants context projects
+   into its local read model.
+3. `predators.advance()` — move each bird; a strike publishes
+   `BirdAttacked`. The simulation engine listens synchronously and calls
+   `ants.kill(...)`; ants publishes `AntDied(cause=EATEN)`.
+4. `colony.advance()` — queen may lay (`EggLaid`), brood matures
+   (`AntHatched`); ants listens and spawns the adult.
+5. `ants.advance()` — each ant acts: feed (meal request-event), leave the
+   nest, forage (scent gradient), pick food (pickup request-event), carry
+   home, deliver (delivery request-event), dig, starve/die.
+6. `simulation` commits the tick transaction → outbox rows are durable →
+   async `@ApplicationModuleListener`s run and append the event log; the SSE
+   broadcaster pushes the snapshot.
 
 Rationale: behaviours read state (positions, scents) at decision time and
-write through the owning module's API; no two threads ever touch live state.
+write through the owning module's API or events; no two threads ever touch
+live state; request/response across contexts is expressed as events so no
+domain module reaches into another.
 
 ## Why in-memory state + outbox events (not full JPA state)
 
@@ -59,11 +84,9 @@ write through the owning module's API; no two threads ever touch live state.
   but live in memory for the run.
 - **Persistence shows up where it matters**: the significant-event trace is
   durable via Spring Modulith's JPA event-publication registry (the
-  transactional outbox pattern from the skill), and async listeners build
-  read models (colony history, food-source log) in Postgres with JPA
-  repositories + Flyway migrations.
-- The event log makes the DDD story visible: open a table and *read the
-  colony's story* (eggs laid, hatches, meals, deaths).
+  transactional outbox pattern), and async listeners build read models in
+  Postgres. The event log makes the DDD story visible: open a table and
+  *read the colony's story* (eggs laid, hatches, meals, deliveries, deaths).
 
 ## Persistence pieces
 
@@ -80,8 +103,8 @@ write through the owning module's API; no two threads ever touch live state.
 ## Rendering
 
 - Backend: SSE endpoint pushing a compact snapshot JSON per tick (entities by
-  type with positions + terrain change deltas). Snapshot built by the
-  `simulation` module from module public APIs (it already depends on all).
+  type with positions + terrain). Snapshot built by the `simulation` module
+  from module public APIs (it already depends on all).
 - Frontend: static `index.html` + `canvas` renderer served from
   `resources/static` — sand background, branch/pebble cells, nest entrance,
   ants as moving dots coloured by role, food sources, birds; optional scent
@@ -92,16 +115,16 @@ write through the owning module's API; no two threads ever touch live state.
 
 - Single-threaded scheduler; `System.nanoTime` only used for pacing, all
   sim decisions use the tick counter (reproducible).
-- Starting config: world 120×80, 1 colony (~1 queen + ~25 workers +
-  ~15 foragers), food cap ~6 sources, 1–2 birds, 10 ticks/s. All knobs via
-  `@ConfigurationProperties` (`simulation.*`, e.g.
-  `simulation.world.width`).
+- Starting config: world 120×80, 1 colony (~1 queen + ~14 workers +
+  ~8 foragers), food cap ~14 sources, 2 birds, 10 ticks/s. All knobs via
+  `@ConfigurationProperties` (`simulation.*`, e.g. `simulation.world.width`).
 
 ## Milestones (all implemented)
 
 1. module skeleton + architecture verification + docs
 2. vertical slice: world + colony (queen, eggs, brood) + roaming ants
-3. foraging: food sources, food-scent pheromones, trail-laying, deposits
-4. predators: birds hunt → engine-mediated ant deaths
+3. foraging: food sources, food-scent pheromones, trail-laying, deliveries
+4. predators: birds hunt → application-mediated ant deaths
 5. workers: digging chambers into the sand
 6. live HTML5 canvas viewer (SSE + fallback), legend, pause/resume/speed
+7. event-only domain communication + `World` interface + outbox persistence

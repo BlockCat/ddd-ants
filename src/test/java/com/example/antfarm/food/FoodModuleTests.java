@@ -6,14 +6,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.modulith.test.Scenario;
+import org.springframework.test.context.ActiveProfiles;
 
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 /**
  * Module-scoped test for the food context: boots the food module together
  * with its direct dependency (world) and asserts that advancing the ecology
  * spawns a source and publishes {@code FoodSourceSpawned}.
  */
+@ActiveProfiles("test")
 @ApplicationModuleTest(mode = ApplicationModuleTest.BootstrapMode.DIRECT_DEPENDENCIES)
 class FoodModuleTests {
 
@@ -21,7 +23,7 @@ class FoodModuleTests {
 	FoodService food;
 
 	@Autowired
-	WorldService world;
+	World world;
 
 	@Test
 	void spawnsSourceAndPublishesFoodSourceSpawned(Scenario scenario) {

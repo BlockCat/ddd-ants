@@ -9,6 +9,9 @@ import com.example.antfarm.colony.ColonyPolicy;
 import com.example.antfarm.colony.Role;
 import com.example.antfarm.world.Position;
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 /**
  * The colony aggregate root: the nest at {@code entrance} with its queen,
  * its brood of eggs and its stored food.
@@ -20,16 +23,21 @@ import com.example.antfarm.world.Position;
  * it) — the public surface is {@code ColonyService}.
  */
 @com.example.ddd.DDDAggregateRoot
+@Accessors(fluent = true)
 public final class Colony {
 
 	private static final double EPSILON = 1e-9;
 
+	@Getter
 	private final ColonyId id;
+	@Getter
 	private final Position entrance;
+	@Getter
 	private final Queen queen;
 	private final ColonyPolicy policy;
 	private final List<Egg> brood = new ArrayList<>();
 
+	@Getter
 	private double food;
 	private long lastLayTick = Long.MIN_VALUE / 2;
 	private int hatchTurn;
@@ -44,22 +52,6 @@ public final class Colony {
 		this.queen = new Queen(1);
 		this.food = initialFood;
 		this.policy = policy;
-	}
-
-	public ColonyId id() {
-		return id;
-	}
-
-	public Position entrance() {
-		return entrance;
-	}
-
-	public Queen queen() {
-		return queen;
-	}
-
-	public double food() {
-		return food;
 	}
 
 	public int broodCount() {

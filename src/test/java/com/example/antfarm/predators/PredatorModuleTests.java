@@ -6,8 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.modulith.test.Scenario;
+import org.springframework.test.context.ActiveProfiles;
 
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 /**
  * Module-scoped test for the predators context: boots the predators module
@@ -15,6 +16,7 @@ import com.example.antfarm.world.WorldService;
  * on open sand announces {@code BirdAttacked} via an event (the ants context
  * reacts to it).
  */
+@ActiveProfiles("test")
 @ApplicationModuleTest(mode = ApplicationModuleTest.BootstrapMode.DIRECT_DEPENDENCIES)
 class PredatorModuleTests {
 
@@ -22,7 +24,7 @@ class PredatorModuleTests {
 	PredatorService predators;
 
 	@Autowired
-	WorldService world;
+	World world;
 
 	@Test
 	void birdStrikesAntAndPublishesBirdAttacked(Scenario scenario) {

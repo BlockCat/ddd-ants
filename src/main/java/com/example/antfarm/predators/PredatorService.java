@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.antfarm.predators.internal.Bird;
 import com.example.antfarm.world.Position;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 /**
  * Public API of the predators context.
@@ -30,7 +30,7 @@ public class PredatorService {
 
 	private static final Logger log = LoggerFactory.getLogger(PredatorService.class);
 
-	private final WorldService world;
+	private final World world;
 	private final ApplicationEventPublisher events;
 	private final Map<BirdId, Bird> birds = new LinkedHashMap<>();
 	private final AtomicLong ids = new AtomicLong(1);
@@ -40,7 +40,7 @@ public class PredatorService {
 	private int huntRadius = 8;
 	private int moveEveryTicks = 2;
 
-	public PredatorService(WorldService world, ApplicationEventPublisher events) {
+	public PredatorService(World world, ApplicationEventPublisher events) {
 		this.world = world;
 		this.events = events;
 	}
@@ -87,7 +87,7 @@ public class PredatorService {
 		int dy = random.nextInt(3) - 1;
 		int x = Math.max(0, Math.min(world.width() - 1, bird.position().x() + dx));
 		int y = Math.max(0, Math.min(world.height() - 1, bird.position().y() + dy));
-		bird.moveTo(new Position(x, y));
+		bird.position(new Position(x, y));
 	}
 
 	private void strike(Bird bird, long tick) {

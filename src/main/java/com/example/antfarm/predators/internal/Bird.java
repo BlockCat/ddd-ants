@@ -3,6 +3,10 @@ package com.example.antfarm.predators.internal;
 import com.example.antfarm.predators.BirdId;
 import com.example.antfarm.world.Position;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
 /**
  * One bird. Internal to the predators module; the public surface is
  * {@code PredatorService}.
@@ -12,9 +16,13 @@ import com.example.antfarm.world.Position;
  * it is satisfied and will not hunt again until the interval has passed.
  */
 @com.example.ddd.DDDEntity
+@Accessors(fluent = true)
 public final class Bird {
 
+	@Getter
 	private final BirdId id;
+	@Getter
+	@Setter
 	private Position position;
 	private long nextHuntTick = 0;
 
@@ -22,18 +30,6 @@ public final class Bird {
 		this.id = id;
 		this.position = position;
 		this.nextHuntTick = firstHuntDelay;
-	}
-
-	public BirdId id() {
-		return id;
-	}
-
-	public Position position() {
-		return position;
-	}
-
-	public void moveTo(Position position) {
-		this.position = position;
 	}
 
 	public boolean readyToHunt(long tick) {

@@ -17,13 +17,18 @@ import org.springframework.stereotype.Service;
 import com.example.antfarm.ants.internal.Ant;
 import com.example.antfarm.colony.AntHatched;
 import com.example.antfarm.colony.ColonyId;
-import com.example.antfarm.colony.ColonyService;
+import com.example.antfarm.colony.FoodConsumptionRequested;
+import com.example.antfarm.colony.FoodDelivered;
+import com.example.antfarm.colony.FoodGranted;
 import com.example.antfarm.colony.Role;
-import com.example.antfarm.food.FoodService;
-import com.example.antfarm.predators.BirdAttacked;
+import com.example.antfarm.food.FoodId;
+import com.example.antfarm.food.FoodPickupRequested;
+import com.example.antfarm.food.FoodPicked;
+import com.example.antfarm.food.FoodSourceDepleted;
+import com.example.antfarm.food.FoodSourceSpawned;
 import com.example.antfarm.world.Position;
 import com.example.antfarm.world.TerrainKind;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 /**
  * Public API of the ants context: owns the roaming adult ants and their
@@ -32,20 +37,27 @@ import com.example.antfarm.world.WorldService;
  * Each tick every ant senses and acts. The behaviour set:
  *
  * <ul>
- *   <li><b>eat &amp; rest</b> inside the nest (drawing meals from the store),</li>
+ *   <li><b>eat &amp; rest</b> inside the nest (drawing meals from the colony
+ *       store via {@link FoodConsumptionRequested} events),</li>
  *   <li><b>forage</b> — foragers follow the food-scent gradient (the
  *       pheromone field maintained by the world module) toward a source,
- *       pick food up, and lay scent while carrying it home,</li>
- *   <li><b>deposit</b> carried food into the colony store on arrival,</li>
+ *       pick food up (via {@link FoodPickupRequested} events), and lay scent
+ *       while carrying it home,</li>
+ *   <li><b>deliver</b> carried food to the colony store on arrival (via
+ *       {@link FoodDelivered} events),</li>
  *   <li><b>dig</b> — workers occasionally carve chambers out of the sand
  *       near the nest, and</li>
- *   <li><b>die</b> when energy runs out (starving, or eaten by a bird via
- *       the {@code BirdAttacked} event).</li>
+ *   <li><b>die</b> when energy runs out or when the engine applies a
+ *       predator-caused death through {@link #kill(AntId, AntDeathCause, long)}.</li>
  * </ul>
  *
- * Movement goes through {@link WorldService}; meals and deposits through
- * {@link ColonyService}; food through {@link FoodService}. The ant
- * aggregate decides; the services own their state.
+ * The ants context never reaches into another domain context: movement goes
+ * through the {@link World} interface, meals and deliveries are announced as
+ * events to the colony context, food pickup is announced as events to the
+ * food context, and the food-source positions it forages on are kept as a
+ * local read model built from {@link FoodSourceSpawned} /
+ * {@link FoodSourceDepleted} events. The ant aggregate decides; the other
+ * contexts own their state.
  */
 @Service
 @com.example.ddd.DDDApplicationService
@@ -53,21 +65,17 @@ public class AntService {
 
 	private static final Logger log = LoggerFactory.getLogger(AntService.class);
 
-	private final WorldService world;
-	private final ColonyService colony;
-	private final FoodService food;
+	private final World world;
 	private final ApplicationEventPublisher events;
 	private final Map<AntId, Ant> ants = new LinkedHashMap<>();
+	private final Map<FoodId, Position> foodSources = new LinkedHashMap<>();
 	private final AtomicLong ids = new AtomicLong(1);
 
 	private AntPolicy policy = AntPolicy.DEFAULTS;
 	private Random random = new Random(1);
 
-	public AntService(WorldService world, ColonyService colony, FoodService food,
-			ApplicationEventPublisher events) {
+	public AntService(World world, ApplicationEventPublisher events) {
 		this.world = world;
-		this.colony = colony;
-		this.food = food;
 		this.events = events;
 	}
 
@@ -86,16 +94,49 @@ public class AntService {
 		return ant.id();
 	}
 
+	// ------------------------------------------------------------------
+	// Event listeners — the ants context reacts to foreign facts by
+	// applying the effect to its own aggregates (no foreign mutation).
+	// ------------------------------------------------------------------
+
 	/** Reacts to a matured brood by bringing the new adult ant into the world. */
 	@EventListener
 	void onAntHatched(AntHatched event) {
 		spawn(new SpawnAnt(event.colonyId(), event.role(), event.entrance()));
 	}
 
-	/** Reacts to a bird strike by applying the death in the owning ants context. */
+	/** Reacts to a granted meal by refilling the hungry ant's energy. */
 	@EventListener
-	void onBirdAttacked(BirdAttacked event) {
-		kill(new AntId(event.antId()), AntDeathCause.EATEN, event.tick());
+	void onFoodGranted(FoodGranted event) {
+		Ant ant = ants.get(new AntId(event.antId()));
+		if (ant != null) {
+			ant.refill(event.amount());
+		}
+	}
+
+	/** Reacts to food actually picked up by loading it onto the ant. */
+	@EventListener
+	void onFoodPicked(FoodPicked event) {
+		Ant ant = ants.get(new AntId(event.antId()));
+		if (ant == null) {
+			return;
+		}
+		ant.addCarrying(event.amount());
+		ant.startReturningHome();
+		log.info("Ant {} ({}) collected {} food at {} and is heading home",
+				ant.id(), ant.role(), round(event.amount()), ant.position());
+	}
+
+	/** Maintains the local read model of food sources from foreign facts. */
+	@EventListener
+	void onFoodSourceSpawned(FoodSourceSpawned event) {
+		foodSources.put(event.foodId(), event.position());
+	}
+
+	/** Removes a depleted source from the local read model. */
+	@EventListener
+	void onFoodSourceDepleted(FoodSourceDepleted event) {
+		foodSources.remove(event.foodId());
 	}
 
 	/** Advances all ants one tick. */
@@ -136,8 +177,11 @@ public class AntService {
 			return;
 		}
 		if (ant.energy() < policy.eatThreshold()) {
-			if (colony.tryConsumeFood(ant.colonyId(), policy.mealAmount())) {
-				ant.refill(policy.mealAmount());
+			double before = ant.energy();
+			events.publishEvent(new FoodConsumptionRequested(ant.colonyId(), ant.id().value(),
+					policy.mealAmount(), tick));
+			// colony grants synchronously via FoodGranted → onFoodGranted refills
+			if (ant.energy() > before) {
 				log.debug("Ant {} fed {} at tick {} (energy {})", ant.id(), policy.mealAmount(), tick, round(ant.energy()));
 			}
 		}
@@ -224,14 +268,12 @@ public class AntService {
 
 	private void advanceExploring(Ant ant, long tick) {
 		// standing on food? pick it up and head home
-		Optional<FoodService.FoodAt> underFoot = food.foodAt(ant.position());
-		if (underFoot.isPresent()) {
-			double taken = food.take(underFoot.get().foodId(), policy.carryingCapacity(), tick);
-			if (taken > 0) {
-				ant.addCarrying(taken);
-				ant.startReturningHome();
-				log.info("Ant {} ({}) collected {} food at {} and is heading home",
-						ant.id(), ant.role(), round(taken), ant.position());
+		FoodId foodId = foodIdAt(ant.position());
+		if (foodId != null) {
+			double before = ant.carrying();
+			events.publishEvent(new FoodPickupRequested(ant.id().value(), foodId, policy.carryingCapacity(), tick));
+			// food answers synchronously via FoodPicked → onFoodPicked loads the ant
+			if (ant.carrying() > before) {
 				return;
 			}
 		}
@@ -254,6 +296,16 @@ public class AntService {
 			}
 		}
 		wander(ant, tick);
+	}
+
+	/** The live food source under a position, from the local event-fed read model. */
+	private FoodId foodIdAt(Position position) {
+		for (Map.Entry<FoodId, Position> entry : foodSources.entrySet()) {
+			if (entry.getValue().equals(position)) {
+				return entry.getKey();
+			}
+		}
+		return null;
 	}
 
 	private boolean followFoodScent(Ant ant, long tick) {
@@ -425,9 +477,8 @@ public class AntService {
 
 	/** Momentum weight of a candidate step relative to the ant's heading. */
 	private double headingWeight(Ant ant, Position candidate) {
-		int dx = Integer.compare(candidate.x(), ant.position().x());
-		int dy = Integer.compare(candidate.y(), ant.position().y());
-		int dot = dx * ant.headingX() + dy * ant.headingY();
+		Momentum step = Momentum.of(candidate.x() - ant.position().x(), candidate.y() - ant.position().y());
+		int dot = step.dot(ant.momentum());
 		return switch (dot) {
 			case 1 -> 5.0;  // straight ahead — keep going
 			case 0 -> 2.0;  // turn sideways
@@ -439,7 +490,7 @@ public class AntService {
 		if (world.move(ant.id().value(), ant.position(), to)) {
 			int fromX = ant.position().x();
 			int fromY = ant.position().y();
-			ant.setPosition(to);
+			ant.position(to);
 			ant.setHeading(to.x() - fromX, to.y() - fromY);
 		} else {
 			log.warn("Ant {} could not move {} -> {} at tick {}", ant.id(), ant.position(), to, tick);
@@ -449,8 +500,8 @@ public class AntService {
 	private void arriveHome(Ant ant, long tick) {
 		double carried = ant.takeCarrying();
 		if (carried > 0) {
-			colony.depositFood(ant.colonyId(), ant.id().value(), carried, tick);
-			log.info("Ant {} deposited {} food into colony {} store", ant.id(), round(carried), ant.colonyId());
+			events.publishEvent(new FoodDelivered(ant.colonyId(), ant.id().value(), carried, tick));
+			log.info("Ant {} delivered {} food to colony {} store", ant.id(), round(carried), ant.colonyId());
 		}
 		world.unregister(ant.id().value(), ant.position());
 		ant.enterNest();

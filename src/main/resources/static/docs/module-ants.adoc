@@ -7,10 +7,11 @@
 
 * `c.e.a.a.AntService`
 |Bean references
-|* `c.e.a.w.WorldService` (in World)
-* `c.e.a.c.ColonyService` (in Colony)
-* `c.e.a.f.FoodService` (in Food)
+|* `c.e.a.w.World` (in World)
 |Events listened to
 |* `c.e.a.c.AntHatched` 
-* `c.e.a.p.BirdAttacked` 
+* `c.e.a.c.FoodGranted` 
+* `c.e.a.f.FoodPicked` 
+* `c.e.a.f.FoodSourceDepleted` 
+* `c.e.a.f.FoodSourceSpawned` 
 |===

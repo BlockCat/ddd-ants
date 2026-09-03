@@ -12,7 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.example.antfarm.simulation.internal.SimulationBroadcaster;
 import com.example.antfarm.simulation.internal.SimulationSnapshotBuilder;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 /**
  * Browser-facing API of the simulation (read-only view model + run
@@ -25,12 +25,12 @@ public class SimulationApiController {
 
 	private static final Logger log = LoggerFactory.getLogger(SimulationApiController.class);
 
-	private final WorldService world;
+	private final World world;
 	private final SimulationSnapshotBuilder snapshots;
 	private final SimulationBroadcaster broadcaster;
 	private final SimulationEngine engine;
 
-	public SimulationApiController(WorldService world, SimulationSnapshotBuilder snapshots,
+	public SimulationApiController(World world, SimulationSnapshotBuilder snapshots,
 			SimulationBroadcaster broadcaster, SimulationEngine engine) {
 		this.world = world;
 		this.snapshots = snapshots;

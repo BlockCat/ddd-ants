@@ -1,4 +1,4 @@
-package com.example.antfarm.world;
+package com.example.antfarm.world.internal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +9,10 @@ import java.util.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import com.example.antfarm.world.Position;
+import com.example.antfarm.world.TerrainKind;
+import com.example.antfarm.world.World;
 
 /**
  * The ant world: a 2D grid of terrain cells plus a spatial registry of the
@@ -30,7 +34,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @com.example.ddd.DDDApplicationService
-public class WorldService {
+public class WorldService implements World {
 
 	private static final Logger log = LoggerFactory.getLogger(WorldService.class);
 

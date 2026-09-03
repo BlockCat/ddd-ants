@@ -7,5 +7,5 @@
 
 * `c.e.a.p.PredatorService`
 |Bean references
-|* `c.e.a.w.WorldService` (in World)
+|* `c.e.a.w.World` (in World)
 |===

@@ -3,8 +3,8 @@ package com.example.antfarm.ants;
 /**
  * Why an ant died. Published with {@code AntDied} by the ants context — the
  * context that owns the ant's life cycle — even when the cause originated
- * elsewhere (e.g. a bird attack will be recorded as {@code EATEN} once the
- * predators context exists).
+ * elsewhere (a bird attack is recorded as {@code EATEN} after the simulation
+ * context translates the predators fact into this context's kill command).
  */
 public enum AntDeathCause {
 	STARVED,

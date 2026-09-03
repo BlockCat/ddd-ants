@@ -10,7 +10,12 @@ import com.example.antfarm.ants.AntDied;
 import com.example.antfarm.ants.ChamberDug;
 import com.example.antfarm.colony.AntHatched;
 import com.example.antfarm.colony.EggLaid;
+import com.example.antfarm.colony.FoodConsumptionRequested;
+import com.example.antfarm.colony.FoodDelivered;
 import com.example.antfarm.colony.FoodDeposited;
+import com.example.antfarm.colony.FoodGranted;
+import com.example.antfarm.food.FoodPickupRequested;
+import com.example.antfarm.food.FoodPicked;
 import com.example.antfarm.food.FoodSourceDepleted;
 import com.example.antfarm.food.FoodSourceSpawned;
 import com.example.antfarm.predators.BirdAttacked;
@@ -78,5 +83,35 @@ public class SimulationEventLogger {
 	@ApplicationModuleListener
 	void onChamberDug(ChamberDug event) {
 		log.debug("event  chamber-dug      {} by {} tick={}", event.position(), event.antId(), event.tick());
+	}
+
+	@ApplicationModuleListener
+	void onFoodConsumptionRequested(FoodConsumptionRequested event) {
+		log.debug("event  food-requested    {} ant={} amount={} tick={}",
+				event.colonyId(), event.antId(), Math.round(event.amount()), event.tick());
+	}
+
+	@ApplicationModuleListener
+	void onFoodGranted(FoodGranted event) {
+		log.debug("event  food-granted      {} ant={} amount={} tick={}",
+				event.colonyId(), event.antId(), Math.round(event.amount()), event.tick());
+	}
+
+	@ApplicationModuleListener
+	void onFoodDelivered(FoodDelivered event) {
+		log.debug("event  food-delivered    {} ant={} amount={} tick={}",
+				event.colonyId(), event.antId(), Math.round(event.amount()), event.tick());
+	}
+
+	@ApplicationModuleListener
+	void onFoodPickupRequested(FoodPickupRequested event) {
+		log.debug("event  food-pickup-req   ant={} food={} requested={} tick={}",
+				event.antId(), event.foodId(), Math.round(event.requested()), event.tick());
+	}
+
+	@ApplicationModuleListener
+	void onFoodPicked(FoodPicked event) {
+		log.debug("event  food-picked       ant={} food={} amount={} tick={}",
+				event.antId(), event.foodId(), Math.round(event.amount()), event.tick());
 	}
 }

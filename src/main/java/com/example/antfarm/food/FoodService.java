@@ -12,11 +12,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import com.example.antfarm.food.internal.FoodSource;
 import com.example.antfarm.world.Position;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 /**
  * Public API of the food context.
@@ -32,7 +33,7 @@ public class FoodService {
 
 	private static final Logger log = LoggerFactory.getLogger(FoodService.class);
 
-	private final WorldService world;
+	private final World world;
 	private final ApplicationEventPublisher events;
 	private final Map<FoodId, FoodSource> sources = new LinkedHashMap<>();
 	private final AtomicLong ids = new AtomicLong(1);
@@ -44,7 +45,7 @@ public class FoodService {
 	private double maxAmount = 45;
 	private long lastSpawnTick = 0;
 
-	public FoodService(WorldService world, ApplicationEventPublisher events) {
+	public FoodService(World world, ApplicationEventPublisher events) {
 		this.world = world;
 		this.events = events;
 	}
@@ -117,6 +118,20 @@ public class FoodService {
 			events.publishEvent(new FoodSourceDepleted(foodId, source.position(), tick));
 		}
 		return taken;
+	}
+
+	/**
+	 * Event-driven intake: a forager's {@link FoodPickupRequested} is answered
+	 * here. Food actually taken is announced with {@link FoodPicked}, which the
+	 * ants context listens to and puts into the ant's load. A depleted source
+	 * additionally publishes {@link FoodSourceDepleted}.
+	 */
+	@EventListener
+	void onFoodPickupRequested(FoodPickupRequested request) {
+		double taken = take(request.foodId(), request.requested(), request.tick());
+		if (taken > 0) {
+			events.publishEvent(new FoodPicked(request.antId(), request.foodId(), taken, request.tick()));
+		}
 	}
 
 	/** All live sources, for snapshots/rendering. */

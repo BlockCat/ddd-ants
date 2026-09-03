@@ -7,5 +7,7 @@
 
 * `c.e.a.f.FoodService`
 |Bean references
-|* `c.e.a.w.WorldService` (in World)
+|* `c.e.a.w.World` (in World)
+|Events listened to
+|* `c.e.a.f.FoodPickupRequested` 
 |===

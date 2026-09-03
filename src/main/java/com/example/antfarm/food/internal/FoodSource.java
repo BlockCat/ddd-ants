@@ -4,20 +4,28 @@ import com.example.antfarm.food.FoodId;
 import com.example.antfarm.food.FoodType;
 import com.example.antfarm.world.Position;
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 /**
- * One patch of food on the surface. Internal to the food module — the
- * public surface is {@code FoodService}.
+ * A food source on the surface: where it lies, what it is made of, and how
+ * much energy it still holds.
  *
  * A source holds a finite amount of food; foragers draw it down until it is
  * depleted and removed. It emits food scent into the world so foragers can
  * smell it (handled by the service, not the aggregate).
  */
 @com.example.ddd.DDDAggregateRoot
+@Accessors(fluent = true)
 public final class FoodSource {
 
+	@Getter
 	private final FoodId id;
+	@Getter
 	private final Position position;
+	@Getter
 	private final FoodType type;
+	@Getter
 	private double amount;
 
 	public FoodSource(FoodId id, Position position, FoodType type, double amount) {
@@ -25,22 +33,6 @@ public final class FoodSource {
 		this.position = position;
 		this.type = type;
 		this.amount = amount;
-	}
-
-	public FoodId id() {
-		return id;
-	}
-
-	public Position position() {
-		return position;
-	}
-
-	public FoodType type() {
-		return type;
-	}
-
-	public double amount() {
-		return amount;
 	}
 
 	public boolean isEmpty() {

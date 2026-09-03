@@ -11,18 +11,24 @@ _Services_
 
 * `c.e.a.s.SimulationEngine`
 |Bean references
-|* `c.e.a.w.WorldService` (in World)
+|* `c.e.a.w.World` (in World)
 * `c.e.a.c.ColonyService` (in Colony)
 * `c.e.a.a.AntService` (in Ants)
 * `c.e.a.f.FoodService` (in Food)
 * `c.e.a.p.PredatorService` (in Predators)
 |Events listened to
-|* `c.e.a.a.AntDied` (async) 
+|* `c.e.a.p.BirdAttacked` 
+* `c.e.a.a.AntDied` (async) 
 * `c.e.a.c.AntHatched` (async) 
 * `c.e.a.p.BirdAttacked` (async) 
 * `c.e.a.a.ChamberDug` (async) 
 * `c.e.a.c.EggLaid` (async) 
+* `c.e.a.c.FoodConsumptionRequested` (async) 
+* `c.e.a.c.FoodDelivered` (async) 
 * `c.e.a.c.FoodDeposited` (async) 
+* `c.e.a.c.FoodGranted` (async) 
+* `c.e.a.f.FoodPicked` (async) 
+* `c.e.a.f.FoodPickupRequested` (async) 
 * `c.e.a.f.FoodSourceDepleted` (async) 
 * `c.e.a.f.FoodSourceSpawned` (async) 
 |===

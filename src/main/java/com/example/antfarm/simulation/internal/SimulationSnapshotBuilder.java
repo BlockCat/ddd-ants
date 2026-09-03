@@ -11,7 +11,7 @@ import com.example.antfarm.colony.Role;
 import com.example.antfarm.food.FoodService;
 import com.example.antfarm.predators.PredatorService;
 import com.example.antfarm.simulation.SimulationSnapshot;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 /**
  * Assembles {@link SimulationSnapshot}s from the module public APIs. Used by
@@ -20,13 +20,13 @@ import com.example.antfarm.world.WorldService;
 @Component
 public class SimulationSnapshotBuilder {
 
-	private final WorldService world;
+	private final World world;
 	private final ColonyService colony;
 	private final AntService ants;
 	private final FoodService food;
 	private final PredatorService predators;
 
-	public SimulationSnapshotBuilder(WorldService world, ColonyService colony, AntService ants,
+	public SimulationSnapshotBuilder(World world, ColonyService colony, AntService ants,
 			FoodService food, PredatorService predators) {
 		this.world = world;
 		this.colony = colony;

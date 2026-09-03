@@ -5,5 +5,5 @@
 |Spring components
 |_Services_
 
-* `c.e.a.w.WorldService`
+* `c.e.a.w.World` (via `c.e.a.w.internal.WorldService`)
 |===

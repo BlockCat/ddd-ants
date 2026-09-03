@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.modulith.test.Scenario;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.example.antfarm.world.Position;
 
@@ -16,6 +17,7 @@ import com.example.antfarm.world.Position;
  * Modulith Scenario API to assert that the lifecycle facts are published and
  * delivered.
  */
+@ActiveProfiles("test")
 @ApplicationModuleTest
 class ColonyModuleTests {
 

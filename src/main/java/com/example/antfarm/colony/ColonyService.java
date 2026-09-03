@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import com.example.antfarm.colony.internal.Colony;
@@ -82,6 +83,27 @@ public class ColonyService {
 			log.debug("Colony {} store now {} after deposit of {} by ant {}", id, c.food(), amount, antId);
 			events.publishEvent(new FoodDeposited(id, antId, amount, c.food(), tick));
 		}, () -> log.warn("Cannot deposit into unknown colony {}", id));
+	}
+
+	/**
+	 * Event-driven intake: a hungry ant's {@link FoodConsumptionRequested} is
+	 * answered here. On success the grant is announced with
+	 * {@link FoodGranted}, which the ants context listens to and refills from.
+	 */
+	@EventListener
+	void onFoodConsumptionRequested(FoodConsumptionRequested request) {
+		if (tryConsumeFood(request.colonyId(), request.amount())) {
+			events.publishEvent(new FoodGranted(request.colonyId(), request.antId(), request.amount(), request.tick()));
+		}
+	}
+
+	/**
+	 * Event-driven intake: a forager's {@link FoodDelivered} is added to the
+	 * store; the {@link FoodDeposited} fact is published from here.
+	 */
+	@EventListener
+	void onFoodDelivered(FoodDelivered delivery) {
+		depositFood(delivery.colonyId(), delivery.antId(), delivery.amount(), delivery.tick());
 	}
 
 	/**

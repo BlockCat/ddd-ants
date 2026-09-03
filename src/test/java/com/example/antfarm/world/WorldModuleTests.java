@@ -10,16 +10,20 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.modulith.test.ApplicationModuleTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import com.example.antfarm.world.World;
 
 /**
  * Module-scoped test for the world context: boots only the world module
  * (STANDALONE) and exercises its public {@code WorldService} API.
  */
+@ActiveProfiles("test")
 @ApplicationModuleTest
 class WorldModuleTests {
 
 	@Autowired
-	WorldService world;
+	World world;
 
 	@Test
 	void createsGridAndTracksOccupancy() {

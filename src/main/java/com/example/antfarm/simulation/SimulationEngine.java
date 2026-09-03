@@ -2,10 +2,13 @@ package com.example.antfarm.simulation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.antfarm.ants.AntDeathCause;
+import com.example.antfarm.ants.AntId;
 import com.example.antfarm.ants.AntPolicy;
 import com.example.antfarm.ants.AntService;
 import com.example.antfarm.ants.SpawnAnt;
@@ -14,12 +17,13 @@ import com.example.antfarm.colony.ColonyPolicy;
 import com.example.antfarm.colony.ColonyService;
 import com.example.antfarm.colony.Role;
 import com.example.antfarm.food.FoodService;
+import com.example.antfarm.predators.BirdAttacked;
 import com.example.antfarm.predators.PredatorService;
 import com.example.antfarm.simulation.internal.SimulationBroadcaster;
 import com.example.antfarm.simulation.internal.SimulationProperties;
 import com.example.antfarm.simulation.internal.SimulationSnapshotBuilder;
 import com.example.antfarm.world.Position;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
 
 import jakarta.annotation.PostConstruct;
 
@@ -50,7 +54,7 @@ public class SimulationEngine {
 
 	private static final Logger log = LoggerFactory.getLogger(SimulationEngine.class);
 
-	private final WorldService world;
+	private final World world;
 	private final ColonyService colony;
 	private final AntService ants;
 	private final FoodService food;
@@ -66,7 +70,7 @@ public class SimulationEngine {
 	private double speed = 1.0;
 	private double speedAccumulator;
 
-	public SimulationEngine(WorldService world, ColonyService colony, AntService ants, FoodService food,
+	public SimulationEngine(World world, ColonyService colony, AntService ants, FoodService food,
 			PredatorService predators, SimulationProperties properties, SimulationBroadcaster broadcaster,
 			SimulationSnapshotBuilder snapshots) {
 		this.world = world;
@@ -133,6 +137,17 @@ public class SimulationEngine {
 
 	public ColonyId colonyId() {
 		return colonyId;
+	}
+
+	/**
+	 * Mediates a bird strike: the predators context publishes
+	 * {@link BirdAttacked} as its own fact, and the engine translates it into
+	 * the owning ants context's command so the victim dies there — ants never
+	 * has to depend on predators.
+	 */
+	@EventListener
+	void onBirdAttacked(BirdAttacked event) {
+		ants.kill(new AntId(event.antId()), AntDeathCause.EATEN, event.tick());
 	}
 
 	public long tick() {

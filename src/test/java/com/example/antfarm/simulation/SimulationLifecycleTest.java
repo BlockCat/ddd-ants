@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.example.antfarm.RecordingPublisher;
+import com.example.antfarm.SynchronousEventBus;
 import com.example.antfarm.ants.AntDied;
 import com.example.antfarm.ants.AntService;
 import com.example.antfarm.colony.AntHatched;
@@ -19,7 +19,8 @@ import com.example.antfarm.predators.PredatorService;
 import com.example.antfarm.simulation.internal.SimulationBroadcaster;
 import com.example.antfarm.simulation.internal.SimulationProperties;
 import com.example.antfarm.simulation.internal.SimulationSnapshotBuilder;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.World;
+import com.example.antfarm.world.internal.WorldService;
 
 /**
  * Runs the full engine (world + food + predators + colony + ants) headless
@@ -42,16 +43,24 @@ class SimulationLifecycleTest {
 	}
 
 	private RunSummary run() {
-		RecordingPublisher publisher = new RecordingPublisher();
-		WorldService world = new WorldService();
+		SynchronousEventBus publisher = new SynchronousEventBus();
+		World world = new WorldService();
 		ColonyService colony = new ColonyService(publisher);
 		FoodService food = new FoodService(world, publisher);
 		PredatorService predators = new PredatorService(world, publisher);
-		AntService ants = new AntService(world, colony, food, publisher);
+		AntService ants = new AntService(world, publisher);
 
 		SimulationEngine engine = new SimulationEngine(world, colony, ants, food, predators,
 				properties(), new SimulationBroadcaster(),
 				new SimulationSnapshotBuilder(world, colony, ants, food, predators));
+
+		// Wire the synchronous cross-module event listeners the way Spring's
+		// @EventListener does in the running application.
+		publisher.register(colony);
+		publisher.register(food);
+		publisher.register(ants);
+		publisher.register(engine);
+
 		engine.start();
 		for (int i = 0; i < TICKS; i++) {
 			engine.runTick();

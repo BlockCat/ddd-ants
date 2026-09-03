@@ -6,4 +6,7 @@
 |_Services_
 
 * `c.e.a.c.ColonyService`
+|Events listened to
+|* `c.e.a.c.FoodConsumptionRequested` 
+* `c.e.a.c.FoodDelivered` 
 |===

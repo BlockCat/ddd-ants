@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import com.example.antfarm.world.Position;
 import com.example.antfarm.world.TerrainKind;
-import com.example.antfarm.world.WorldService;
+import com.example.antfarm.world.internal.WorldService;
 
 class WorldServiceTest {
 

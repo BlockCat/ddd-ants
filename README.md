@@ -43,11 +43,12 @@ It demonstrates, with one small codebase:
 
 | Concern | Choice |
 |---|---|
-| Language / runtime | Java 21 (Temurin LTS) |
+| Language / runtime | Java 21 bytecode (builds on JDK 21 or JDK 25) |
 | Framework | Spring Boot 4.1.1 (Spring Framework 7) |
 | Modularity | Spring Modulith 2.1.1 (BOM-managed) |
 | Persistence | Spring Data JPA + Flyway + PostgreSQL |
 | Events | Modulith event publication registry (outbox), `@ApplicationModuleListener` |
+| Boilerplate | Lombok (`@Getter`/`@Setter`, fluent accessors via `lombok.config`) |
 | API/rendering | REST + SSE snapshots, static HTML5 canvas client |
 | Testing | JUnit 5, `@ApplicationModuleTest`/Scenario, Testcontainers |
 
@@ -59,6 +60,8 @@ ddd-demo/
 ├── compose.yaml                     # local Postgres (podman/docker compose)
 ├── docs/                            # the DDD design contract (model first!)
 │   ├── ubiquitous-language.md       # glossary: terms used verbatim in code
+│   ├── knowledge-map.md             # every term → owner context → model element
+│   ├── domain-models.md             # aggregates, entities, value objects per context
 │   ├── context-map.md               # bounded contexts & relationships
 │   ├── domain-events.md             # event catalog by owning context
 │   └── simulation-design.md         # tick engine, persistence, rendering
@@ -68,9 +71,9 @@ ddd-demo/
     │   │                # purely descriptive, no behaviour, outside the module graph
     │   └── antfarm
     │       ├── AntFarmApplication.java
-    │       ├── world/       # terrain grid, occupancy, scent fields
+    │       ├── world/       # World interface + Position/TerrainKind; internal/WorldService
     │       ├── colony/      # events + service; internal/ = nest aggregates
-    │       ├── ants/        # events + service; internal/ = ant aggregate
+    │       ├── ants/        # events + service; internal/ = ant aggregate (+ Momentum VO)
     │       ├── food/        # events + service; internal/ = food-source aggregate
     │       ├── predators/   # events + service; internal/ = bird aggregate
     │       └── simulation/  # tick engine, orchestration, snapshot API
@@ -85,8 +88,9 @@ ddd-demo/
 
 ## Prerequisites
 
-- **JDK 21** (any distribution; installed via SDKMAN in this workspace:
-  `sdk install java 21.0.12+1.1-tem`)
+- **JDK 21 or JDK 25** (any distribution; the build targets Java 21 bytecode,
+  so it runs on 21+). This workspace uses SDKMAN-installed Temurin 21:
+  `sdk install java 21.0.4-tem`
 - **PostgreSQL 15+** — either
   - a container: [`compose.yaml`](compose.yaml) is provided — `podman compose
     up -d` (or `podman-compose up -d`, or `docker compose up -d`), or
@@ -155,18 +159,25 @@ Each top-level package under `com.example.antfarm` is one bounded context /
 Modulith application module:
 
 ```
-simulation ──► colony ──► world ◄── food
-   │  └────► ants ──► colony ──► predators
-   │            │             ▲
-   └────────► food            │
-   └────────► predators ──────┘
+simulation ──► colony ──► world ◄── food ◄── ants
+   │  └────► ants ──► colony (events only)   ▲
+   │            └────► food (events only)    │
+   └────────► food                           │
+   └────────► predators ──► world ───────────┘
+        │
+        └── (BirdAttacked) ──► simulation mediates ──► ants.kill()
 ```
 
-One-way effects between contexts are published as **events** and handled by
-listeners in the owning context: `colony` publishes `AntHatched` and `ants`
-spawns the adult; `predators` publishes `BirdAttacked` and `ants` kills the
-victim. Request/response operations (feeding, picking food up) remain
-synchronous commands.
+**Domain contexts communicate only through events.** `colony` publishes
+`AntHatched` and `ants` spawns the adult; `ants` publishes
+`FoodConsumptionRequested`/`FoodDelivered` and `colony` answers with
+`FoodGranted`/`FoodDeposited`; `ants` publishes `FoodPickupRequested` and
+`food` answers with `FoodPicked`; `predators` publishes `BirdAttacked` and
+`simulation` translates it into `ants.kill(...)` — so ants never depends on
+predators. The one synchronous dependency is the **world**, exposed only
+through its `World` interface. Every event is written to the Modulith
+`EVENT_PUBLICATION` outbox inside the tick transaction and delivered
+asynchronously after commit.
 
 Rules enforced automatically by `ArchitectureTests` (`ApplicationModules
 .verify()`): no module may reach another module's internals, dependencies
@@ -174,9 +185,11 @@ must honour the declared `allowedDependencies`, no cycles.
 
 **Read the docs — they are the model:**
 1. [`docs/ubiquitous-language.md`](docs/ubiquitous-language.md) — the terms
-2. [`docs/context-map.md`](docs/context-map.md) — the boundaries
-3. [`docs/domain-events.md`](docs/domain-events.md) — the facts
-4. [`docs/simulation-design.md`](docs/simulation-design.md) — how it runs
+2. [`docs/knowledge-map.md`](docs/knowledge-map.md) — term → context → model element
+3. [`docs/domain-models.md`](docs/domain-models.md) — the tactical model per context
+4. [`docs/context-map.md`](docs/context-map.md) — the boundaries
+5. [`docs/domain-events.md`](docs/domain-events.md) — the facts
+6. [`docs/simulation-design.md`](docs/simulation-design.md) — how it runs
 
 ## Agent skills
 
@@ -196,3 +209,5 @@ lives as loadable skills in `../.pi/skills/` (`ddd-expert`,
   kills via `BirdAttacked` → `AntDied(EATEN)`)
 - **M4 — done** workers dig chambers out of the sand near the nest
 - **M5 — done** live canvas viewer over SSE, legend, pause/resume/speed
+- **M6 — done** event-only domain communication, `World` interface, outbox
+  persistence for every event, Lombok accessors, `Momentum` value object

@@ -7,12 +7,13 @@
  * home), decide, move — dig, forage, carry food home, rest.
  *
  * Depends on {@code world} (positions, movement, scents), {@code food}
- * (picking up from a source), and {@code colony} (depositing carried food,
- * consuming stored food, learning the nest entrance). Cross-module effects
- * aimed at ants arrive as events: {@code AntHatched} from {@code colony}
- * spawns a new adult, {@code BirdAttacked} from {@code predators} applies a
- * death — no other module reaches into this one.
+ * (picking up from a source, and a local read model of food positions),
+ * and {@code colony} (meals and deliveries, announced as events).
+ * Cross-module effects aimed at ants arrive as events: {@code AntHatched}
+ * from {@code colony} spawns a new adult, and the engine translates a
+ * predators strike into this context's {@code kill} command — ants never
+ * reaches into (and never depends on) the {@code predators} module.
  */
-@org.springframework.modulith.ApplicationModule(allowedDependencies = { "world", "food", "colony", "predators" })
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "world", "food", "colony" })
 @com.example.ddd.DDDBoundedContext(name = "ants", description = "Free-roaming adults: forage by scent, carry food home, dig chambers, starve")
 package com.example.antfarm.ants;

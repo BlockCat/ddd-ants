@@ -1,9 +1,14 @@
 package com.example.antfarm.ants.internal;
 
 import com.example.antfarm.ants.AntId;
+import com.example.antfarm.ants.Momentum;
 import com.example.antfarm.colony.ColonyId;
 import com.example.antfarm.colony.Role;
 import com.example.antfarm.world.Position;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 
 /**
  * One roaming adult ant. Internal to the ants module; the public surface is
@@ -16,6 +21,7 @@ import com.example.antfarm.world.Position;
  * taken from the colony store while inside.
  */
 @com.example.ddd.DDDAggregateRoot
+@Accessors(fluent = true)
 public final class Ant {
 
 	public enum Activity {
@@ -23,21 +29,33 @@ public final class Ant {
 		RETURNING
 	}
 
+	@Getter
 	private final AntId id;
+	@Getter
 	private final ColonyId colonyId;
+	@Getter
 	private final Role role;
+	@Getter
 	private final Position entrance;
 
 	private boolean inside = true;
+	@Getter
+	@Setter
 	private Position position; // null while inside
+	@Getter
 	private double energy;
+	@Getter
 	private double carrying;
+	@Getter
 	private Activity activity = Activity.EXPLORING;
+	@Getter
 	private long ticksOutside;
+	@Getter
 	private long exploreBudget;
+	@Getter
 	private int insideTicks;
-	private int headingX = 0;
-	private int headingY = -1; // last direction of travel (unit vector, north default)
+	@Getter
+	private Momentum momentum = Momentum.NORTH; // last direction of travel (north default)
 
 	public Ant(AntId id, ColonyId colonyId, Role role, Position entrance, double startEnergy) {
 		this.id = id;
@@ -48,56 +66,15 @@ public final class Ant {
 		this.carrying = 0;
 	}
 
-	public AntId id() {
-		return id;
-	}
-
-	public ColonyId colonyId() {
-		return colonyId;
-	}
-
-	public Role role() {
-		return role;
-	}
-
-	public Position entrance() {
-		return entrance;
-	}
-
 	public boolean isInside() {
 		return inside;
-	}
-
-	public Position position() {
-		return position;
-	}
-
-	public void setPosition(Position position) {
-		this.position = position;
-	}
-
-	public int headingX() {
-		return headingX;
-	}
-
-	public int headingY() {
-		return headingY;
 	}
 
 	/** Records the direction of travel (a unit step: dx/dy in -1..1). */
 	public void setHeading(int dx, int dy) {
 		if (dx != 0 || dy != 0) {
-			this.headingX = Integer.compare(dx, 0);
-			this.headingY = Integer.compare(dy, 0);
+			this.momentum = Momentum.of(dx, dy);
 		}
-	}
-
-	public double energy() {
-		return energy;
-	}
-
-	public double carrying() {
-		return carrying;
 	}
 
 	public void addCarrying(double amount) {
@@ -111,24 +88,8 @@ public final class Ant {
 		return carried;
 	}
 
-	public Activity activity() {
-		return activity;
-	}
-
 	public boolean isReturning() {
 		return activity == Activity.RETURNING;
-	}
-
-	public long ticksOutside() {
-		return ticksOutside;
-	}
-
-	public long exploreBudget() {
-		return exploreBudget;
-	}
-
-	public int insideTicks() {
-		return insideTicks;
 	}
 
 	public void markOutsideTick() {
